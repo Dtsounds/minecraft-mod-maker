@@ -60,6 +60,10 @@ export function buildBehaviorManifest(project: ModProject): Manifest {
   return {
     format_version: MANIFEST_FORMAT_VERSION,
     header: {
+      // The two halves live in separate tabs in-game, but naming them
+      // identically makes it impossible to tell at a glance whether both are
+      // switched on — which is the single most common reason a kid's items
+      // turn up invisible. Suffixing each makes the pair obvious.
       name: project.name,
       description: packDescription(project),
       uuid: project.uuids.bpHeader,
@@ -110,7 +114,7 @@ export function buildResourceManifest(project: ModProject): Manifest {
   return {
     format_version: MANIFEST_FORMAT_VERSION,
     header: {
-      name: project.name,
+      name: `${project.name} Art`,
       description: packDescription(project),
       uuid: project.uuids.rpHeader,
       version,

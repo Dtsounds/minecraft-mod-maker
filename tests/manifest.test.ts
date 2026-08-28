@@ -12,6 +12,14 @@ describe('manifest generator', () => {
     expect(buildResourceManifest(project).format_version).toBe(2);
   });
 
+  it('names the two halves distinguishably', () => {
+    // Both packs appearing as the same name in their separate tabs makes it
+    // impossible to see at a glance whether both are switched on, which is
+    // the most common cause of invisible items.
+    expect(buildBehaviorManifest(project).header.name).toBe('Ruby Mod');
+    expect(buildResourceManifest(project).header.name).toBe('Ruby Mod Art');
+  });
+
   it('includes every required header field', () => {
     for (const manifest of [buildBehaviorManifest(project), buildResourceManifest(project)]) {
       const { header } = manifest;

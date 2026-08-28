@@ -49,7 +49,24 @@ function gemTexture(): Texture {
   return t;
 }
 
-const project = createProject('Ruby Mod', 'Shiny ruby tools and gems!');
+const project = createProject('Ruby Mod R5', 'Shiny ruby tools and gems!');
+
+/**
+ * FIXED UUIDs so re-running this script UPDATES the previously imported pack
+ * instead of installing yet another copy beside it.
+ *
+ * createProject() mints fresh UUIDs, which is right for the app (each new mod
+ * a kid makes is genuinely a new pack, and the ids are then persisted in
+ * IndexedDB so re-exports replace in place). It is wrong for a test fixture
+ * that gets rebuilt over and over: every rebuild imported as a separate pack,
+ * leaving a stack of identically-named packs active at once.
+ */
+project.uuids = {
+  bpHeader: 'a5c65766-0bcd-471b-a3ad-6904fb0e12c0',
+  bpModule: '24b02bcc-e1bf-46a4-8381-7a136fd78ce7',
+  rpHeader: '313f5639-a317-4b4d-abe2-660d2bdb0617',
+  rpModule: '0515c6dd-cb37-41b2-b431-4b6b09164489',
+};
 
 const gem: ModItem = {
   ...createItem('plain'),
