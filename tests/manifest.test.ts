@@ -45,10 +45,21 @@ describe('manifest generator', () => {
     expect((bp.header as unknown as Record<string, unknown>).dependencies).toBeUndefined();
   });
 
-  it('links RP -> BP as well, so the halves stay enabled together', () => {
+  it('does NOT link RP -> BP', () => {
+    // Regression: a mutual BP<->RP dependency is a cycle Minecraft cannot
+    // resolve, and it rejects the whole .mcaddon on import with "missing one
+    // or more dependencies". The link must stay one-directional.
+    const rp = buildResourceManifest(project);
+    expect(rp.dependencies).toBeUndefined();
+  });
+
+  it('never produces a circular dependency between the two packs', () => {
     const bp = buildBehaviorManifest(project);
     const rp = buildResourceManifest(project);
-    expect(rp.dependencies?.[0]?.uuid).toBe(bp.header.uuid);
+    const bpPointsAtRp = bp.dependencies?.some((d) => d.uuid === rp.header.uuid) ?? false;
+    const rpPointsAtBp = rp.dependencies?.some((d) => d.uuid === bp.header.uuid) ?? false;
+    expect(bpPointsAtRp).toBe(true);
+    expect(rpPointsAtBp).toBe(false);
   });
 
   it('never emits an empty description', () => {

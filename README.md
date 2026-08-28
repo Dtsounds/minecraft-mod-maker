@@ -75,6 +75,16 @@ won:
 - Manifest `dependencies` is a **top-level** section, not `header.dependencies`.
 - The `.lang` display-name key is `item.<ns>:<id>=Name`, **not** `…​.name=Name`.
 
+### Dependency direction (learned the hard way)
+
+The BP↔RP link is **one-directional: BP → RP only**. An early version also
+pointed the RP back at the BP, reasoning that a mutual link would keep the two
+halves enabled together. Minecraft cannot resolve the cycle and rejects the
+whole add-on on import with *"missing one or more dependencies"*. Caught by an
+on-device import, not by any test — the structural tests were happy, because
+both UUIDs and versions matched perfectly. `tests/manifest.test.ts` now has a
+regression test for the cycle specifically.
+
 ## Testing
 
 ```
@@ -96,9 +106,15 @@ The UI tests drive real components with `@testing-library/user-event` and then
 unzip the bytes the browser was actually handed, rather than asserting on
 in-memory objects.
 
-## Not yet verified
+## On-device verification
 
-The generated add-on has **not been imported into a real Minecraft Bedrock
-client**. Every structural claim is machine-checked against the documented
-schema, but that is not the same as the game accepting it. Run `npm run sample`
-and import `sample-output/Ruby_Mod.mcaddon` to confirm on-device.
+Import status is tracked here because the structural tests cannot substitute
+for it:
+
+- **2026-08-28** — first on-device import **failed**: "missing one or more
+  dependencies", caused by a circular BP↔RP manifest dependency. Fixed; see
+  *Dependency direction* above.
+- **Pending** — re-import after the fix, and confirmation of item names,
+  textures, edible food, and recipe cropping.
+
+Run `npm run sample` and open `sample-output/Ruby_Mod.mcaddon` to test.

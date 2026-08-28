@@ -61,10 +61,12 @@ describe('packaging pipeline', () => {
     expect(bp.modules[0].type).toBe('data');
     expect(rp.modules[0].type).toBe('resources');
 
-    // The linkage that makes the two halves import as one add-on.
+    // The linkage that makes the two halves import as one add-on. It is
+    // one-directional on purpose: a mutual dependency is a cycle Minecraft
+    // rejects at import time with "missing one or more dependencies".
     expect(bp.dependencies[0].uuid).toBe(rp.header.uuid);
-    expect(rp.dependencies[0].uuid).toBe(bp.header.uuid);
     expect(bp.dependencies[0].version).toEqual(rp.header.version);
+    expect(rp.dependencies).toBeUndefined();
 
     for (const id of [bp.header.uuid, bp.modules[0].uuid, rp.header.uuid, rp.modules[0].uuid]) {
       expect(isUuid(id)).toBe(true);

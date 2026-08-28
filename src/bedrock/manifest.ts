@@ -88,9 +88,21 @@ export function buildBehaviorManifest(project: ModProject): Manifest {
 }
 
 /**
- * Resource pack manifest. The RP declares a dependency back on the BP too.
- * Minecraft only strictly needs BP -> RP, but keeping both directions
- * consistent stops the two halves from ever being enabled separately.
+ * Resource pack manifest.
+ *
+ * The RP deliberately declares NO dependencies. The link is one-directional:
+ * BP -> RP, and only that.
+ *
+ * An earlier version of this file also pointed the RP back at the BP, on the
+ * theory that a mutual link would keep the two halves enabled together. It
+ * does the opposite: Minecraft cannot resolve the cycle and refuses the
+ * import with "missing one or more dependencies". Caught by importing a
+ * generated .mcaddon into a real Bedrock client on 2026-08-28.
+ *
+ * The one-directional form is what Microsoft's manifest reference shows --
+ * its resource pack example carries no `dependencies` section at all.
+ * Activating the behavior pack in a world pulls its resource pack in
+ * automatically, which is the behaviour the mutual link was reaching for.
  */
 export function buildResourceManifest(project: ModProject): Manifest {
   const version = [...project.version] as Version3;
@@ -109,12 +121,6 @@ export function buildResourceManifest(project: ModProject): Manifest {
         description: packDescription(project),
         type: 'resources',
         uuid: project.uuids.rpModule,
-        version,
-      },
-    ],
-    dependencies: [
-      {
-        uuid: project.uuids.bpHeader,
         version,
       },
     ],
