@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -b --noEmit",
-    "sample": "tsx scripts/make-sample.mts"
+    "sample": "tsx scripts/make-sample.mts",
+    "diagnostic": "tsx scripts/make-diagnostic.mts"
   },
   "dependencies": {
     "jszip": "^3.10.1",
