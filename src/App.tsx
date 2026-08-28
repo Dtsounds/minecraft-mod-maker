@@ -2,13 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { HomeScreen } from './screens/HomeScreen';
 import { NewModScreen } from './screens/NewModScreen';
 import { EditorScreen } from './screens/EditorScreen';
+import { PixelEditor } from './components/PixelEditor/PixelEditor';
 import { deleteProject, listProjects, saveProject } from './storage/db';
 import { useAutosave } from './storage/useAutosave';
 import { createProject, bumpVersion } from './bedrock/project';
 import { exportProject } from './bedrock/package';
 import type { ModItem, ModProject } from './bedrock/types';
 
-type Screen = { name: 'home' } | { name: 'new' } | { name: 'editor' };
+type Screen = { name: 'home' } | { name: 'new' } | { name: 'editor' } | { name: 'icon' };
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'home' });
@@ -103,6 +104,20 @@ export default function App() {
           <NewModScreen onCreate={handleCreate} onCancel={() => setScreen({ name: 'home' })} />
         )}
 
+        {screen.name === 'icon' && project && (
+          <div className="card">
+            <PixelEditor
+              texture={project.icon}
+              title="Draw your mod's icon"
+              onCancel={() => setScreen({ name: 'editor' })}
+              onSave={(icon) => {
+                update((draft) => ({ ...draft, icon }));
+                setScreen({ name: 'editor' });
+              }}
+            />
+          </div>
+        )}
+
         {screen.name === 'editor' && project && (
           <EditorScreen
             project={project}
@@ -120,9 +135,7 @@ export default function App() {
               /* Milestone 3 */
             }}
             onDeleteItem={handleDeleteItem}
-            onEditIcon={() => {
-              /* Milestone 2 */
-            }}
+            onEditIcon={() => setScreen({ name: 'icon' })}
           />
         )}
       </main>
