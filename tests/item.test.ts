@@ -24,8 +24,24 @@ describe('item JSON shape', () => {
   it('always has an icon and a display name', () => {
     for (const kind of ITEM_PRESET_ORDER) {
       const components = buildItemJson('mymod', make(kind))['minecraft:item'].components;
-      expect(components['minecraft:icon']).toEqual({ texture: 'mymod:test_thing' });
+      expect(components['minecraft:icon']).toEqual({ textures: { default: 'mymod:test_thing' } });
       expect(components['minecraft:display_name']).toEqual({ value: 'Test Thing' });
+    }
+  });
+
+  it('never emits the deprecated minecraft:icon `texture` field', () => {
+    // Regression: `{ texture: "key" }` is documented as "Deprecated - no
+    // longer in use". An item using it loads, registers, and shows its name
+    // correctly while rendering completely invisible — so nothing but an
+    // in-game look catches it. Every preset must use the `textures` map.
+    for (const kind of ITEM_PRESET_ORDER) {
+      const icon = buildItemJson('mymod', make(kind))['minecraft:item'].components['minecraft:icon'] as Record<
+        string,
+        unknown
+      >;
+      expect(icon['texture']).toBeUndefined();
+      expect(icon['textures']).toBeDefined();
+      expect((icon['textures'] as Record<string, string>)['default']).toBe('mymod:test_thing');
     }
   });
 

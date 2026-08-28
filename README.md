@@ -114,7 +114,25 @@ for it:
 - **2026-08-28** — first on-device import **failed**: "missing one or more
   dependencies", caused by a circular BP↔RP manifest dependency. Fixed; see
   *Dependency direction* above.
-- **Pending** — re-import after the fix, and confirmation of item names,
-  textures, edible food, and recipe cropping.
+- **2026-08-28** — items imported, registered and named correctly but were
+  **invisible**. Two independent causes:
+  1. `minecraft:icon` was written as `{"texture": key}`. That field is
+     documented as *"Deprecated - no longer in use"*; the current shape is
+     `{"textures": {"default": key}}`. An item using the old field loads,
+     registers, and shows its name while rendering nothing at all.
+  2. The resource pack was not activated in the world. Microsoft's docs say
+     activating the behavior pack auto-activates its linked resource pack;
+     in practice it did not, so the onboarding now tells you to switch on
+     both and names the invisible-item symptom explicitly.
+- **Pending** — re-import after the icon fix, and confirmation of textures,
+  edible food, and recipe cropping.
+
+### What the test suite could not catch
+
+Three separate bugs (circular dependency, deprecated icon field, resource
+pack not activated) all produced output that was internally consistent and
+schema-shaped. The tests verified our own bytes against our own
+understanding, which is worth a lot but is not the same as the game agreeing.
+Where a doc and the game disagreed, the game won every time.
 
 Run `npm run sample` and open `sample-output/Ruby_Mod.mcaddon` to test.

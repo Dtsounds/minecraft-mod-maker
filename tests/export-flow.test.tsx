@@ -74,16 +74,20 @@ describe('export and onboarding', () => {
     await settleAutosave();
   }, 40000);
 
-  it('explains that activating the behavior pack brings the resource pack with it', async () => {
-    // This is only true because the generated BP manifest declares a
-    // dependency on the RP, so the instruction and the generator must agree.
+  it('tells the kid to activate BOTH packs, and what invisible items mean', async () => {
+    // The docs claim activating the behavior pack auto-activates its linked
+    // resource pack. On-device that did not happen, and the resulting
+    // symptom — items that exist, are named correctly and are completely
+    // invisible — is impossible for a kid to diagnose. So the instructions
+    // say to switch both on, and name that symptom explicitly.
     const user = userEvent.setup();
     render(<App />);
     await newMod(user, 'Linked Mod');
     await clickDownload(user, capture);
     await screen.findByRole('heading', { name: /your mod is ready/i });
 
-    expect(screen.getByText(/matching resource pack switches itself on/i)).toBeInTheDocument();
+    expect(screen.getByText(/you need both/i)).toBeInTheDocument();
+    expect(screen.getByText(/if your stuff is invisible/i)).toBeInTheDocument();
 
     await settleAutosave();
   }, 40000);

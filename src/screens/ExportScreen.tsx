@@ -172,7 +172,8 @@ export function ExportScreen({ project, fileName, onBack, onDownloadAgain, busy 
               4
             </span>
             <span>
-              The matching resource pack switches itself on — the two halves are linked together.
+              Go back and tap <strong>Resource Packs</strong>, find <strong>{project.name}</strong> there, and
+              tap <strong>Activate</strong> too. <strong>You need both!</strong>
             </span>
           </li>
           <li>
@@ -183,8 +184,9 @@ export function ExportScreen({ project, fileName, onBack, onDownloadAgain, busy 
           </li>
         </ol>
         <p className="note">
-          💡 If your items don’t show up, open <strong>Resource Packs</strong> and check{' '}
-          <strong>{project.name}</strong> is switched on there too.
+          💡 <strong>If your stuff is invisible</strong>, it’s almost always the resource pack. Go back into{' '}
+          <strong>Resource Packs</strong> and make sure <strong>{project.name}</strong> is switched on — the
+          behavior pack alone gives you the items, but the resource pack is what gives them their pictures.
         </p>
       </section>
     </div>

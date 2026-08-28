@@ -104,8 +104,20 @@ describe('item creator, driven through the UI', () => {
     expect(recipe['minecraft:recipe_shaped'].pattern).toEqual(['A', 'A', 'B']);
     expect(recipe['minecraft:recipe_shaped'].result.item).toBe('ruby_mod:ruby_sword');
 
+    // The icon must use the `textures` map; the flat `texture` field is
+    // deprecated and renders invisible in-game.
+    expect(item['minecraft:item'].components['minecraft:icon']).toEqual({
+      textures: { default: 'ruby_mod:ruby_sword' },
+    });
+
     const atlas = await addon.json('Ruby_Mod_RP/textures/item_texture.json');
     expect(atlas.texture_data['ruby_mod:ruby_sword']).toEqual({ textures: 'textures/items/ruby_sword' });
+
+    // Every icon key must actually resolve to a registered texture.
+    const iconKey = (item['minecraft:item'].components['minecraft:icon'] as {
+      textures: { default: string };
+    }).textures.default;
+    expect(Object.keys(atlas.texture_data)).toContain(iconKey);
 
     const lang = await addon.text('Ruby_Mod_RP/texts/en_US.lang');
     expect(lang).toContain('item.ruby_mod:ruby_sword=Ruby Sword');

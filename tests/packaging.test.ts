@@ -2,7 +2,7 @@ import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
 import { buildAddon } from '../src/bedrock/pack';
 import { zipAddonBytes } from '../src/bedrock/package';
-import { createProject } from '../src/bedrock/project';
+import { createItem, createProject } from '../src/bedrock/project';
 import { isUuid } from '../src/bedrock/ids';
 import { isPng, readPngSize } from '../src/bedrock/png';
 import type { ModProject } from '../src/bedrock/types';
@@ -107,6 +107,29 @@ describe('packaging pipeline', () => {
     const zip = await JSZip.loadAsync(await zipAddonBytes(addon));
     for (const path of Object.keys(zip.files)) {
       expect(path).toMatch(/^[A-Za-z0-9_./]+$/);
+    }
+  });
+
+  it('every item icon key resolves to a texture registered in the atlas', async () => {
+    // A dangling icon key renders the item invisible while everything else
+    // about it works, so this link is checked explicitly.
+    const project = createProject('Atlas Mod', '');
+    project.items = [
+      { ...createItem('sword'), name: 'Blade' },
+      { ...createItem('plain'), name: 'Gem' },
+    ];
+    const { readJson, paths } = await unzip(project);
+    const atlas = await readJson('Atlas_Mod_RP/textures/item_texture.json');
+    const registered = Object.keys(atlas.texture_data);
+
+    for (const path of paths.filter((p) => p.includes('_BP/items/'))) {
+      const item = await readJson(path);
+      const icon = item['minecraft:item'].components['minecraft:icon'];
+      expect(icon.texture, `${path} must not use the deprecated icon.texture field`).toBeUndefined();
+      const key = icon.textures.default;
+      expect(registered, `${path} icon key ${key} is not in item_texture.json`).toContain(key);
+      // ...and the texture entry must point at a PNG that is actually present.
+      expect(paths).toContain(`Atlas_Mod_RP/${atlas.texture_data[key].textures}.png`);
     }
   });
 

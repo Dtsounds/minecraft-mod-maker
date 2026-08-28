@@ -56,7 +56,7 @@ export function buildAddon(project: ModProject): BuiltAddon {
     // Rebuild the JSON against the de-duplicated short name.
     const itemJson = buildItemJson(ns, scoped);
     itemJson['minecraft:item'].description.identifier = identifier;
-    itemJson['minecraft:item'].components['minecraft:icon'] = { texture: identifier };
+    itemJson['minecraft:item'].components['minecraft:icon'] = { textures: { default: identifier } };
     text(`${bp}/items/${shortName}.json`, json(itemJson));
 
     const recipeJson = buildRecipeJson(ns, scoped);

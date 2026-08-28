@@ -71,7 +71,12 @@ export function buildItemJson(namespace: string, item: ModItem): ItemJson {
   const displayName = item.name.trim() || 'My Item';
 
   const components: Record<string, unknown> = {
-    'minecraft:icon': { texture: identifier },
+    // NOTE: the shape here matters. `{ texture: "key" }` is documented as
+    // "Deprecated - no longer in use" on the minecraft:icon reference page,
+    // and an item using it renders completely invisible in-game while
+    // otherwise working perfectly. The current shape is a `textures` map
+    // whose `default` entry names the key from item_texture.json.
+    'minecraft:icon': { textures: { default: identifier } },
     'minecraft:display_name': { value: displayName },
   };
 
