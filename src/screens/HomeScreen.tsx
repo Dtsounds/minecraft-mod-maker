@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { ModProject } from '../bedrock/types';
 import { TexturePreview } from '../components/TexturePreview';
 
@@ -10,6 +11,9 @@ interface Props {
 }
 
 export function HomeScreen({ projects, loading, onNew, onOpen, onDelete }: Props) {
+  // Deleting a whole mod throws away everything a kid made, so it always asks.
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
   return (
     <div className="stack">
       <div className="hero card">
@@ -54,13 +58,35 @@ export function HomeScreen({ projects, loading, onNew, onOpen, onDelete }: Props
                     {project.items.length === 1 ? '1 item' : `${project.items.length} items`}
                   </span>
                 </button>
-                <button
-                  className="btn btn--danger btn--icon mod-card__delete"
-                  aria-label={`Delete ${project.name}`}
-                  onClick={() => onDelete(project)}
-                >
-                  🗑️
-                </button>
+                {confirmDelete === project.id ? (
+                  <div className="mod-card__confirm">
+                    <button
+                      className="btn btn--danger btn--icon"
+                      aria-label={`Really delete ${project.name}`}
+                      onClick={() => {
+                        onDelete(project);
+                        setConfirmDelete(null);
+                      }}
+                    >
+                      ✓
+                    </button>
+                    <button
+                      className="btn btn--ghost btn--icon"
+                      aria-label={`Keep ${project.name}`}
+                      onClick={() => setConfirmDelete(null)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className="btn btn--danger btn--icon mod-card__delete"
+                    aria-label={`Delete ${project.name}`}
+                    onClick={() => setConfirmDelete(project.id)}
+                  >
+                    🗑️
+                  </button>
+                )}
               </li>
             ))}
           </ul>

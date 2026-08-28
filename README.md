@@ -1,0 +1,104 @@
+# Bedrock Mod Maker
+
+A browser app where a kid (roughly 8–14, non-programmer) visually creates real
+Minecraft **Bedrock Edition** add-ons — no JSON, no code — and downloads a
+working `.mcaddon` they can open on their device to play with.
+
+Everything runs client-side. There is no backend, no account, and nothing
+leaves the browser; projects autosave to IndexedDB.
+
+## Running it
+
+```bash
+npm install
+npm run dev        # http://localhost:5173
+npm test           # 122 tests
+npm run build
+npm run sample     # writes a real .mcaddon to sample-output/ for device testing
+```
+
+## What's built
+
+| Milestone | Status |
+| --- | --- |
+| 0 — Scaffold, JSZip, IndexedDB autosave | ✅ |
+| 1 — Packaging pipeline (BP/RP manifests → `.mcaddon`) | ✅ |
+| 2 — Pixel texture editor | ✅ |
+| 3 — Item creator (7 presets + 3×3 recipe builder) | ✅ |
+| 4 — Export onboarding + My Mods | ✅ |
+| 5 — Block creator | not started |
+| 6 — Mob creator | not started |
+
+## Architecture
+
+The generator layer (`src/bedrock/`) is deliberately free of React and DOM
+imports: project state goes in, a list of files comes out. That separation is
+what lets the packaging tests assert on the exact bytes that ship, and it means
+new item/block/mob presets can be added without touching packaging code.
+
+```
+src/bedrock/
+  versions.ts     pinned Bedrock schema versions, with doc citations
+  ids.ts          identifier/UUID hygiene — total functions, no throws
+  png.ts          dependency-free PNG encoder (same bytes in Node and browser)
+  texture.ts      texture model, normalisation, resampling
+  manifest.ts     BP/RP manifest pair
+  item.ts         item JSON per preset
+  recipe.ts       shaped crafting recipes
+  pack.ts         assembles the whole file tree (pure)
+  package.ts      JSZip + browser download
+```
+
+### Pinned Bedrock versions
+
+Verified against Microsoft Learn's live creator docs on **2026-08-28**. See
+`src/bedrock/versions.ts` for the citations and the reasoning behind each
+choice.
+
+| Thing | Value |
+| --- | --- |
+| manifest `format_version` | `2` (v3 is preview-only) |
+| `min_engine_version` | `[1, 21, 0]` |
+| items `format_version` | `"1.21.30"` |
+| recipes `format_version` | `"1.20.10"` |
+| `textures/*_texture.json` | no `format_version` (none exists for these) |
+
+`min_engine_version` is deliberately conservative. Microsoft's guidance is to
+target the newest release, but that exists for Marketplace conformance; here
+the priority is the opposite — the file has to import on whatever build is on
+a kid's tablet. `min_engine_version` is a floor, so a lower value works on more
+devices and costs nothing on newer ones.
+
+Two details in `OPUS_BUILD_PROMPT.md` did not match the live docs, and the docs
+won:
+
+- Manifest `dependencies` is a **top-level** section, not `header.dependencies`.
+- The `.lang` display-name key is `item.<ns>:<id>=Name`, **not** `…​.name=Name`.
+
+## Testing
+
+```
+tests/ids            identifier sanitisation, UUIDs, clamping
+tests/png            PNG encoding, texture normalisation and resampling
+tests/storage        IndexedDB round-trips and graceful degradation
+tests/manifest       manifest shape and BP↔RP linkage
+tests/packaging      zips, unzips, and validates the archive as Minecraft reads it
+tests/pixel-tools    drawing operations as pure functions
+tests/pixel-editor   the editor driven through its real UI
+tests/item           item JSON per preset, plus clamping of absurd values
+tests/recipe         pattern cropping, key assignment, unknown-id rejection
+tests/app-flow       new mod → download, end to end
+tests/item-flow      the item wizard → download, end to end
+tests/export-flow    onboarding, autosave, My Mods, delete confirmation
+```
+
+The UI tests drive real components with `@testing-library/user-event` and then
+unzip the bytes the browser was actually handed, rather than asserting on
+in-memory objects.
+
+## Not yet verified
+
+The generated add-on has **not been imported into a real Minecraft Bedrock
+client**. Every structural claim is machine-checked against the documented
+schema, but that is not the same as the game accepting it. Run `npm run sample`
+and import `sample-output/Ruby_Mod.mcaddon` to confirm on-device.

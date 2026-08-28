@@ -18,9 +18,9 @@ async function awaitDownload(capture: ReturnType<typeof captureDownloads>) {
   await act(async () => {
     download = await capture.waitForDownload();
   });
-  await waitFor(() => expect(screen.getByRole('button', { name: /download my mod/i })).toBeEnabled(), {
-    timeout: 5000,
-  });
+  // Since Milestone 4 the app lands on the how-to-install screen once the
+  // file is in the browser; waiting for it also settles the export state.
+  await screen.findByRole('heading', { name: /your mod is ready/i }, { timeout: 5000 });
   return download;
 }
 

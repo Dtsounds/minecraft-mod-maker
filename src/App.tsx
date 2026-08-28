@@ -4,6 +4,7 @@ import { NewModScreen } from './screens/NewModScreen';
 import { EditorScreen } from './screens/EditorScreen';
 import { PixelEditor } from './components/PixelEditor/PixelEditor';
 import { ItemScreen } from './screens/ItemScreen';
+import { ExportScreen } from './screens/ExportScreen';
 import { deleteProject, listProjects, saveProject } from './storage/db';
 import { useAutosave } from './storage/useAutosave';
 import { createProject, createItem, bumpVersion } from './bedrock/project';
@@ -15,7 +16,8 @@ type Screen =
   | { name: 'new' }
   | { name: 'editor' }
   | { name: 'icon' }
-  | { name: 'item'; itemId: string };
+  | { name: 'item'; itemId: string }
+  | { name: 'exported'; fileName: string };
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'home' });
@@ -60,6 +62,21 @@ export default function App() {
     try {
       // Bump the version so a re-import replaces the previous copy in-game
       // instead of being silently ignored as "already installed".
+      const next = { ...project, version: bumpVersion(project), updatedAt: Date.now() };
+      setProject(next);
+      await saveProject(next);
+      const fileName = await exportProject(next);
+      setScreen({ name: 'exported', fileName });
+    } finally {
+      setExporting(false);
+    }
+  }, [project]);
+
+  /** Re-download without leaving the "how to install" screen. */
+  const handleDownloadAgain = useCallback(async () => {
+    if (!project) return;
+    setExporting(true);
+    try {
       const next = { ...project, version: bumpVersion(project), updatedAt: Date.now() };
       setProject(next);
       await saveProject(next);
@@ -127,6 +144,16 @@ export default function App() {
 
         {screen.name === 'new' && (
           <NewModScreen onCreate={handleCreate} onCancel={() => setScreen({ name: 'home' })} />
+        )}
+
+        {screen.name === 'exported' && project && (
+          <ExportScreen
+            project={project}
+            fileName={screen.fileName}
+            busy={exporting}
+            onBack={() => setScreen({ name: 'editor' })}
+            onDownloadAgain={handleDownloadAgain}
+          />
         )}
 
         {screen.name === 'item' && project && editingItem && (
