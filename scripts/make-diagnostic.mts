@@ -1,42 +1,44 @@
 /**
- * Diagnostic add-on, round 2.
+ * Diagnostic add-on, round 3.
  *
- * Round 1 established:
- *   - the behavior pack loads and items register (/give works)
- *   - food already works WITHOUT minecraft:use_animation (C, D and E were all
- *     edible), so that component was a red herring
- *   - BOTH item_texture.json key styles render invisible, so the key
- *     convention is not the problem either
+ * Established so far, all from on-device testing:
+ *   - behavior pack loads: items register, /give works, names correct
+ *   - food works without minecraft:use_animation
+ *   - our PNGs decode: a pack_icon.png from our own encoder rendered in the
+ *     pack list (magenta in round 1, orange in round 2)
+ *   - namespaced AND plain item_texture.json keys both render invisible
+ *   - stored AND real-deflate PNGs both render invisible
+ *   - fixing minecraft:icon to the non-deprecated {"textures":{"default":...}}
+ *     shape did NOT make them visible
  *
- * That leaves the image data itself, or the resource pack not applying.
+ * Every one of those rules something out without telling us what is actually
+ * wrong, because they all share an untested assumption: that the resource
+ * pack is being applied to the world at all. Nothing so far distinguishes
+ * "the RP is inactive" from "custom item textures do not resolve" — the
+ * symptom is identical.
  *
- * Prime suspect: our PNG encoder emits *stored* (uncompressed) DEFLATE
- * blocks. That is spec-valid — node's zlib inflates it, CRCs check out — but
- * effectively no real-world PNG is encoded that way, because every normal
- * encoder actually compresses. A decoder that only ever meets Huffman-coded
- * blocks can pass every test in the wild and still fail on ours.
+ * So this pack stops testing custom items and tests the RESOURCE PACK ITSELF,
+ * by overriding textures that already exist in vanilla:
  *
- * This pack isolates exactly that variable: two items, same pixels, same
- * texture key style, differing ONLY in how the IDAT is compressed.
+ *   textures/items/apple.png   -> solid MAGENTA
+ *   textures/items/diamond.png -> solid CYAN
  *
- *   F = our encoder            (stored / uncompressed DEFLATE)
- *   G = same pixels via zlib   (real Huffman-compressed DEFLATE)
- *
- * Also drops `texture_name` from item_texture.json, since Microsoft's own
- * examples omit it — if BOTH F and G light up, that field was the culprit.
+ * Those need no item_texture.json entry, no icon component, no identifier and
+ * no behavior pack. They rely on nothing but the resource pack being applied.
+ * A magenta apple is proof the RP is live.
  *
  * Reading the result:
- *   G visible, F not      -> the encoder is the bug; switch to real DEFLATE
- *   both visible          -> `texture_name` was the bug
- *   neither, icons shown  -> packs load; item texture resolution is broken
- *   neither, no icons     -> the resource pack is not applying at all
+ *   apple magenta, custom item invisible -> RP is fine; custom item texture
+ *                                           resolution is the bug
+ *   apple normal                          -> the RP is not being applied, and
+ *                                           every custom-item theory so far
+ *                                           has been chasing a ghost
  *
  *   npx tsx scripts/make-diagnostic.mts
  */
 import { writeFile, mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { deflateSync } from 'node:zlib';
 import JSZip from 'jszip';
 import { encodePng } from '../src/bedrock/png';
 import { uuid } from '../src/bedrock/ids';
@@ -47,8 +49,7 @@ const outDir = resolve(here, '..', 'sample-output');
 const NS = 'diag';
 const FOLDER = 'Diagnostic';
 
-/** Solid 16x16 RGBA block — unmistakable when it renders. */
-function solidRgba(r: number, g: number, b: number): Uint8Array {
+function solid(r: number, g: number, b: number): Uint8Array {
   const rgba = new Uint8Array(16 * 16 * 4);
   for (let i = 0; i < 16 * 16; i++) {
     rgba[i * 4] = r;
@@ -56,71 +57,8 @@ function solidRgba(r: number, g: number, b: number): Uint8Array {
     rgba[i * 4 + 2] = b;
     rgba[i * 4 + 3] = 255;
   }
-  return rgba;
+  return encodePng(rgba, 16, 16);
 }
-
-// ---- Known-good PNG encoder, using real zlib compression -------------------
-const CRC_TABLE = (() => {
-  const t = new Uint32Array(256);
-  for (let n = 0; n < 256; n++) {
-    let c = n;
-    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-    t[n] = c >>> 0;
-  }
-  return t;
-})();
-
-function crc32(bytes: Uint8Array): number {
-  let c = 0xffffffff;
-  for (const b of bytes) c = (CRC_TABLE[(c ^ b) & 0xff] as number) ^ (c >>> 8);
-  return (c ^ 0xffffffff) >>> 0;
-}
-
-function u32(n: number): Uint8Array {
-  return new Uint8Array([(n >>> 24) & 0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff]);
-}
-
-function cat(parts: Uint8Array[]): Uint8Array {
-  const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
-  let o = 0;
-  for (const p of parts) {
-    out.set(p, o);
-    o += p.length;
-  }
-  return out;
-}
-
-function chunk(type: string, data: Uint8Array): Uint8Array {
-  const body = cat([new Uint8Array([...type].map((c) => c.charCodeAt(0))), data]);
-  return cat([u32(data.length), body, u32(crc32(body))]);
-}
-
-/** Identical structure to src/bedrock/png.ts, but with REAL deflate. */
-function encodePngCompressed(rgba: Uint8Array, w: number, h: number): Uint8Array {
-  const stride = w * 4;
-  const filtered = new Uint8Array((stride + 1) * h);
-  for (let y = 0; y < h; y++) {
-    filtered[y * (stride + 1)] = 0;
-    filtered.set(rgba.subarray(y * stride, (y + 1) * stride), y * (stride + 1) + 1);
-  }
-  return cat([
-    new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    chunk('IHDR', cat([u32(w), u32(h), new Uint8Array([8, 6, 0, 0, 0])])),
-    chunk('IDAT', new Uint8Array(deflateSync(Buffer.from(filtered), { level: 9 }))),
-    chunk('IEND', new Uint8Array(0)),
-  ]);
-}
-
-// ---------------------------------------------------------------------------
-const magenta = solidRgba(255, 0, 255);
-const cyan = solidRgba(0, 255, 255);
-
-const storedPng = encodePng(magenta, 16, 16); // our shipping encoder
-const deflatePng = encodePngCompressed(cyan, 16, 16); // known-good
-const iconPng = encodePngCompressed(solidRgba(255, 200, 0), 16, 16);
-
-console.log(`F (stored)  : ${storedPng.byteLength} bytes`);
-console.log(`G (deflate) : ${deflatePng.byteLength} bytes`);
 
 const bpHeader = uuid();
 const bpModule = uuid();
@@ -132,7 +70,7 @@ const manifest = (name: string, type: 'data' | 'resources', header: string, mod:
   format_version: 2,
   header: {
     name,
-    description: 'PNG encoding probe',
+    description: 'Resource pack liveness probe',
     uuid: header,
     version,
     min_engine_version: [1, 21, 0],
@@ -141,53 +79,54 @@ const manifest = (name: string, type: 'data' | 'resources', header: string, mod:
   ...(deps ? { dependencies: deps } : {}),
 });
 
-const item = (id: string, displayName: string, iconKey: string) => ({
-  format_version: '1.21.30',
-  'minecraft:item': {
-    description: { identifier: `${NS}:${id}`, menu_category: { category: 'items' } },
-    components: {
-      'minecraft:icon': { texture: iconKey },
-      'minecraft:display_name': { value: displayName },
-      'minecraft:max_stack_size': 64,
-    },
-  },
-});
-
 const json = (v: unknown) => `${JSON.stringify(v, null, 2)}\n`;
 const zip = new JSZip();
 
+// ---- Behavior pack: one custom item, correct modern icon shape -------------
 zip.file(
   `${FOLDER}_BP/manifest.json`,
   json(manifest('Diagnostic BP', 'data', bpHeader, bpModule, [{ uuid: rpHeader, version }])),
 );
-zip.file(`${FOLDER}_BP/items/f_stored.json`, json(item('f_stored', 'Diag F Stored', 'f_stored')));
-zip.file(`${FOLDER}_BP/items/g_deflate.json`, json(item('g_deflate', 'Diag G Deflate', 'g_deflate')));
-
-zip.file(`${FOLDER}_RP/manifest.json`, json(manifest('Diagnostic RP', 'resources', rpHeader, rpModule)));
-zip.file(`${FOLDER}_BP/pack_icon.png`, iconPng);
-zip.file(`${FOLDER}_RP/pack_icon.png`, iconPng);
-
-zip.file(`${FOLDER}_RP/textures/items/f_stored.png`, storedPng);
-zip.file(`${FOLDER}_RP/textures/items/g_deflate.png`, deflatePng);
-
-// No `texture_name` — Microsoft's own item_texture.json examples omit it.
 zip.file(
-  `${FOLDER}_RP/textures/item_texture.json`,
+  `${FOLDER}_BP/items/custom.json`,
   json({
-    resource_pack_name: FOLDER,
-    texture_data: {
-      f_stored: { textures: 'textures/items/f_stored' },
-      g_deflate: { textures: 'textures/items/g_deflate' },
+    format_version: '1.21.30',
+    'minecraft:item': {
+      description: { identifier: `${NS}:custom`, menu_category: { category: 'items' } },
+      components: {
+        'minecraft:icon': { textures: { default: 'diag_custom' } },
+        'minecraft:display_name': { value: 'Diag Custom' },
+        'minecraft:max_stack_size': 64,
+      },
     },
   }),
 );
 
+// ---- Resource pack ---------------------------------------------------------
+zip.file(`${FOLDER}_RP/manifest.json`, json(manifest('Diagnostic RP', 'resources', rpHeader, rpModule)));
+zip.file(`${FOLDER}_BP/pack_icon.png`, solid(255, 200, 0));
+zip.file(`${FOLDER}_RP/pack_icon.png`, solid(255, 200, 0));
+
+// THE KEY TEST. These overwrite vanilla textures by path alone — no
+// item_texture.json entry, no identifier, no behavior pack involvement.
+// If the resource pack is applied, apples turn magenta and diamonds cyan.
+zip.file(`${FOLDER}_RP/textures/items/apple.png`, solid(255, 0, 255));
+zip.file(`${FOLDER}_RP/textures/items/diamond.png`, solid(0, 255, 255));
+
+// The custom item's own texture, for comparison.
+zip.file(`${FOLDER}_RP/textures/items/diag_custom.png`, solid(0, 255, 0));
 zip.file(
-  `${FOLDER}_RP/texts/en_US.lang`,
-  [`item.${NS}:f_stored=Diag F Stored`, `item.${NS}:g_deflate=Diag G Deflate`, 'pack.name=Diagnostic', ''].join(
-    '\n',
-  ),
+  `${FOLDER}_RP/textures/item_texture.json`,
+  json({
+    resource_pack_name: FOLDER,
+    texture_name: 'atlas.items',
+    texture_data: {
+      diag_custom: { textures: 'textures/items/diag_custom' },
+    },
+  }),
 );
+
+zip.file(`${FOLDER}_RP/texts/en_US.lang`, `item.${NS}:custom=Diag Custom\npack.name=Diagnostic\n`);
 zip.file(`${FOLDER}_RP/texts/languages.json`, json(['en_US']));
 
 const bytes = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
@@ -195,7 +134,10 @@ await mkdir(outDir, { recursive: true });
 const outPath = resolve(outDir, 'Diagnostic.mcaddon');
 await writeFile(outPath, bytes);
 
-console.log(`\nWrote ${outPath} (${bytes.byteLength} bytes)\n`);
-console.log('  /give @s diag:f_stored    -> MAGENTA if our encoder works');
-console.log('  /give @s diag:g_deflate   -> CYAN    if real deflate works');
-console.log('  pack icons in the pack list are ORANGE (real deflate)');
+console.log(`Wrote ${outPath} (${bytes.byteLength} bytes)\n`);
+console.log('Activate BOTH packs, then:');
+console.log('  /give @s apple          -> MAGENTA if the resource pack is live');
+console.log('  /give @s diamond        -> CYAN    if the resource pack is live');
+console.log('  /give @s diag:custom    -> GREEN   if custom item textures resolve');
+console.log('\nIf apple/diamond look normal, the resource pack is not being applied,');
+console.log('and no amount of custom-item tweaking will matter.');
