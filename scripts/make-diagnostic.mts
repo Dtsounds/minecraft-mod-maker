@@ -1,40 +1,46 @@
 /**
- * Diagnostic add-on, round 3.
+ * Diagnostic add-on, round 6.
  *
- * Established so far, all from on-device testing:
- *   - behavior pack loads: items register, /give works, names correct
- *   - food works without minecraft:use_animation
- *   - our PNGs decode: a pack_icon.png from our own encoder rendered in the
- *     pack list (magenta in round 1, orange in round 2)
- *   - namespaced AND plain item_texture.json keys both render invisible
- *   - stored AND real-deflate PNGs both render invisible
- *   - fixing minecraft:icon to the non-deprecated {"textures":{"default":...}}
- *     shape did NOT make them visible
+ * Ground truth pulled from Mojang/bedrock-samples (the actual shipping vanilla
+ * packs) rather than the docs, which have now been misleading three times:
  *
- * Every one of those rules something out without telling us what is actually
- * wrong, because they all share an untested assumption: that the resource
- * pack is being applied to the world at all. Nothing so far distinguishes
- * "the RP is inactive" from "custom item textures do not resolve" — the
- * symptom is identical.
+ *   behavior_pack/items/apple.json
+ *     format_version "1.26.30"
+ *     "minecraft:icon": { "textures": { "default": "apple" } }
  *
- * So this pack stops testing custom items and tests the RESOURCE PACK ITSELF,
- * by overriding textures that already exist in vanilla:
+ *   resource_pack/textures/item_texture.json
+ *     { "resource_pack_name": "vanilla",
+ *       "texture_name": "atlas.items",
+ *       "texture_data": { "apple": { "textures": "textures/items/apple" } } }
  *
- *   textures/items/apple.png   -> solid MAGENTA
- *   textures/items/diamond.png -> solid CYAN
+ *   resource_pack/ has NO items/ directory — custom items need no client-side
+ *   definition.
  *
- * Those need no item_texture.json entry, no icon component, no identifier and
- * no behavior pack. They rely on nothing but the resource pack being applied.
- * A magenta apple is proof the RP is live.
+ * Our generated files now match all of that exactly, so the shape is right and
+ * the remaining question is narrower: are OUR item_texture.json entries being
+ * registered at all?
  *
- * Reading the result:
- *   apple magenta, custom item invisible -> RP is fine; custom item texture
- *                                           resolution is the bug
- *   apple normal                          -> the RP is not being applied, and
- *                                           every custom-item theory so far
- *                                           has been chasing a ghost
+ * Round 4 gave us the lever. Overriding textures/items/apple.png turned apples
+ * magenta, which proves two things at once: our PNGs load, and VANILLA's
+ * item_texture.json is still live (the "apple" key still resolves, or the
+ * override would have had nothing to attach to).
  *
- *   npx tsx scripts/make-diagnostic.mts
+ * So this round points a custom item at a texture key we did not define:
+ *
+ *   S -> icon key "apple"          a key only VANILLA registers
+ *   T -> icon key "diag6_custom"   a key only WE register
+ *
+ * S and T are otherwise identical. That splits the last ambiguity:
+ *
+ *   S magenta, T blank -> icon->key lookup works; our item_texture.json
+ *                         entries are not being merged in
+ *   both blank         -> the icon component is not resolving at all, even
+ *                         against a known-good vanilla key
+ *   both coloured      -> it all works, and the earlier failures were the
+ *                         duplicate-pack mess
+ *
+ * Reuses DIAG5's UUIDs on purpose so this REPLACES it instead of adding yet
+ * another pack.
  */
 import { writeFile, mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -45,9 +51,7 @@ import { encodePng } from '../src/bedrock/png';
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, '..', 'sample-output');
 
-// Round number, baked into every visible name so multiple imports can never
-// be confused with one another again.
-const ROUND = 5;
+const ROUND = 6;
 const NS = `diag${ROUND}`;
 const FOLDER = `DIAG${ROUND}`;
 
@@ -62,30 +66,18 @@ function solid(r: number, g: number, b: number): Uint8Array {
   return encodePng(rgba, 16, 16);
 }
 
-/**
- * FIXED UUIDs, deliberately not generated.
- *
- * Every earlier round generated fresh UUIDs on each run, so Minecraft treated
- * every rebuild as a brand-new pack and imported it alongside the previous
- * one instead of replacing it. That produced a pile of identically-named
- * packs, several of them active at once with overlapping item_texture.json
- * files — a confound bad enough to invalidate the tests being run.
- *
- * A pack's identity IS its header UUID. Keep it stable and re-imports update
- * in place. (The app itself already does this: project UUIDs are minted once
- * and stored in IndexedDB.)
- */
+// Same UUIDs as DIAG5, so this updates that pack in place.
 const bpHeader = 'd393e012-0898-440d-ba05-3d4b2a44424d';
 const bpModule = 'ae1bed17-112a-4060-ae5a-c3aca94252e7';
 const rpHeader = '55ddb07f-7728-4059-95e3-d0fee5f760a5';
 const rpModule = '519d172f-6e3b-4f56-ba20-9bdd9ab1bcb2';
-const version = [1, 0, 0];
+const version = [1, 0, 6];
 
 const manifest = (name: string, type: 'data' | 'resources', header: string, mod: string, deps?: object[]) => ({
   format_version: 2,
   header: {
     name,
-    description: 'Resource pack liveness probe',
+    description: 'Texture key registration probe',
     uuid: header,
     version,
     min_engine_version: [1, 26, 0],
@@ -94,64 +86,48 @@ const manifest = (name: string, type: 'data' | 'resources', header: string, mod:
   ...(deps ? { dependencies: deps } : {}),
 });
 
-const json = (v: unknown) => `${JSON.stringify(v, null, 2)}\n`;
-const zip = new JSZip();
-
-// ---- Behavior pack: one custom item, correct modern icon shape -------------
-zip.file(
-  `${FOLDER}_BP/manifest.json`,
-  json(manifest(`DIAG${ROUND} Behavior`, 'data', bpHeader, bpModule, [{ uuid: rpHeader, version }])),
-);
-const customItem = (id: string, name: string, formatVersion: string, icon: object) => ({
-  format_version: formatVersion,
+/** Shaped exactly like Mojang's apple.json. */
+const item = (id: string, name: string, iconKey: string) => ({
+  format_version: '1.26.30',
   'minecraft:item': {
     description: { identifier: `${NS}:${id}`, menu_category: { category: 'items' } },
     components: {
-      'minecraft:icon': icon,
       'minecraft:display_name': { value: name },
+      'minecraft:icon': { textures: { default: iconKey } },
       'minecraft:max_stack_size': 64,
     },
   },
 });
 
-// THE VARIABLE UNDER TEST: item format_version. The client is 1.26.45
-// internally, so a 1.21.30 file is five drops behind, and minecraft:icon
-// changed shape in between. P and Q differ ONLY in schema version.
+const json = (v: unknown) => `${JSON.stringify(v, null, 2)}\n`;
+const zip = new JSZip();
+
 zip.file(
-  `${FOLDER}_BP/items/p_old_format.json`,
-  json(customItem('p_old_format', `D${ROUND} P Old 1.21.30`, '1.21.30', { textures: { default: 'diag_custom' } })),
-);
-zip.file(
-  `${FOLDER}_BP/items/q_new_format.json`,
-  json(customItem('q_new_format', `D${ROUND} Q New 1.26.40`, '1.26.40', { textures: { default: 'diag_custom' } })),
-);
-// R pairs the OLD schema with the OLD field, which is at least self
-// consistent — if R works and Q does not, the fix is to go backwards.
-zip.file(
-  `${FOLDER}_BP/items/r_old_both.json`,
-  json(customItem('r_old_both', `D${ROUND} R Old plus texture`, '1.21.30', { texture: 'diag_custom' })),
+  `${FOLDER}_BP/manifest.json`,
+  json(manifest(`DIAG${ROUND} Behavior`, 'data', bpHeader, bpModule, [{ uuid: rpHeader, version }])),
 );
 
-// ---- Resource pack ---------------------------------------------------------
+// S borrows a texture key that ONLY vanilla registers.
+zip.file(`${FOLDER}_BP/items/s_vanilla_key.json`, json(item('s_vanilla_key', `D${ROUND} S VanillaKey`, 'apple')));
+// T uses a key that ONLY we register.
+zip.file(`${FOLDER}_BP/items/t_our_key.json`, json(item('t_our_key', `D${ROUND} T OurKey`, `${NS}_custom`)));
+
 zip.file(`${FOLDER}_RP/manifest.json`, json(manifest(`DIAG${ROUND} Art`, 'resources', rpHeader, rpModule)));
 zip.file(`${FOLDER}_BP/pack_icon.png`, solid(255, 200, 0));
 zip.file(`${FOLDER}_RP/pack_icon.png`, solid(255, 200, 0));
 
-// THE KEY TEST. These overwrite vanilla textures by path alone — no
-// item_texture.json entry, no identifier, no behavior pack involvement.
-// If the resource pack is applied, apples turn magenta and diamonds cyan.
+// Control: proves the resource pack is live and our PNGs load.
 zip.file(`${FOLDER}_RP/textures/items/apple.png`, solid(255, 0, 255));
-zip.file(`${FOLDER}_RP/textures/items/diamond.png`, solid(0, 255, 255));
+// T's texture.
+zip.file(`${FOLDER}_RP/textures/items/${NS}_custom.png`, solid(0, 255, 0));
 
-// The custom item's own texture, for comparison.
-zip.file(`${FOLDER}_RP/textures/items/diag_custom.png`, solid(0, 255, 0));
 zip.file(
   `${FOLDER}_RP/textures/item_texture.json`,
   json({
     resource_pack_name: FOLDER,
     texture_name: 'atlas.items',
     texture_data: {
-      diag_custom: { textures: 'textures/items/diag_custom' },
+      [`${NS}_custom`]: { textures: `textures/items/${NS}_custom` },
     },
   }),
 );
@@ -159,9 +135,8 @@ zip.file(
 zip.file(
   `${FOLDER}_RP/texts/en_US.lang`,
   [
-    `item.${NS}:p_old_format=D${ROUND} P Old 1.21.30`,
-    `item.${NS}:q_new_format=D${ROUND} Q New 1.26.40`,
-    `item.${NS}:r_old_both=D${ROUND} R Old plus texture`,
+    `item.${NS}:s_vanilla_key=D${ROUND} S VanillaKey`,
+    `item.${NS}:t_our_key=D${ROUND} T OurKey`,
     `pack.name=DIAG${ROUND}`,
     '',
   ].join('\n'),
@@ -174,11 +149,6 @@ const outPath = resolve(outDir, 'Diagnostic.mcaddon');
 await writeFile(outPath, bytes);
 
 console.log(`Wrote ${outPath} (${bytes.byteLength} bytes)\n`);
-console.log('Activate BOTH packs, then:');
-console.log('  /give @s apple          -> MAGENTA if the resource pack is live');
-console.log('  /give @s diamond        -> CYAN    if the resource pack is live');
-console.log(`  /give @s ${NS}:p_old_format -> GREEN if 1.21.30 + textures.default works`);
-console.log(`  /give @s ${NS}:q_new_format -> GREEN if 1.26.40 + textures.default works`);
-console.log(`  /give @s ${NS}:r_old_both   -> GREEN if 1.21.30 + texture works`);
-console.log('\nIf apple/diamond look normal, the resource pack is not being applied,');
-console.log('and no amount of custom-item tweaking will matter.');
+console.log(`  /give @s ${NS}:s_vanilla_key  -> MAGENTA if icon->key lookup works at all`);
+console.log(`  /give @s ${NS}:t_our_key      -> GREEN   if OUR texture keys register`);
+console.log('  /give @s apple                -> MAGENTA (control: resource pack is live)');
