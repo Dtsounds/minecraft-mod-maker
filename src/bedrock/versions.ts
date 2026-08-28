@@ -32,42 +32,55 @@ export const MANIFEST_FORMAT_VERSION = 2 as const;
 /**
  * The floor engine version a player needs to load our packs.
  *
- * The retail line at time of writing is 1.26.x. Microsoft's guidance says to
- * target the newest release, but that guidance exists for Marketplace
- * conformance — for this tool the priority is the opposite: a kid's .mcaddon
- * must import on whatever build happens to be on their tablet, school
- * Chromebook, or console. min_engine_version is a *floor*: a client older
- * than this refuses the pack outright, while a newer client loads it fine.
+ * NOTE ON VERSION NUMBERING: as of 2026 Minecraft's public version string is
+ * year-based (the retail client shows "v26.45"), but pack JSON still uses the
+ * old scheme, where that same build is `1.26.45`. So a client displaying
+ * "26.45" wants 1.26.x content.
  *
- * 1.21.0 is the oldest release that supports every component we emit, so it
- * is the widest floor we can pick without giving anything up.
+ * This was originally pinned to [1, 21, 0] to maximise the range of clients
+ * that could load a kid's add-on, reasoning that min_engine_version is only a
+ * floor. That was the wrong trade. Bedrock auto-updates on every platform, so
+ * essentially nobody is running an old client — while targeting a stale
+ * schema actively breaks on current ones. Microsoft's own guidance is to
+ * target the newest release, and on-device testing agreed.
  */
-export const MIN_ENGINE_VERSION: readonly [number, number, number] = [1, 21, 0];
+export const MIN_ENGINE_VERSION: readonly [number, number, number] = [1, 26, 0];
 
 /**
  * format_version for behavior-pack items/*.json.
  *
- * 1.21.30 is comfortably inside stable and is the minimum that supports every
- * component this app can emit:
- *   minecraft:durability   >= 1.20.0
- *   minecraft:digger       >= 1.20.30
- *   minecraft:use_modifiers>= 1.20.50   (required for minecraft:food to work)
- *   menu_category          >= 1.20.x
- *   minecraft:dyeable      >= 1.21.30
+ * This is the schema version the item file is parsed against, and it must
+ * agree with the FIELD SHAPES used inside the file. That coupling caused a
+ * real bug: minecraft:icon changed from `{"texture": key}` to
+ * `{"textures": {"default": key}}`, and declaring the newer field under an
+ * older format_version produced items that loaded, registered, responded to
+ * /give and showed their names — while rendering completely invisible.
+ *
+ * Microsoft's platform guidance says item types should be within one minor
+ * version of the retail release ("N or N-1"). The retail line is 1.26.x, so
+ * 1.21.30 was well outside that window.
+ *
+ * 1.26.40 is the newest documented stable update at time of writing. Note
+ * that item definitions at 1.26.30+ must contain at least one entry in
+ * `minecraft:item.components` or they fail to register — we always emit an
+ * icon and a display name, so that holds.
  */
-export const ITEM_FORMAT_VERSION = '1.21.30' as const;
+export const ITEM_FORMAT_VERSION = '1.26.40' as const;
 
 /**
- * format_version for behavior-pack recipes/*.json. The recipe schema has been
- * stable for a long time; the docs' own vanilla examples still ship 1.12–1.20.
- * 1.20.10 is the well-proven value for shaped/shapeless crafting recipes.
+ * format_version for behavior-pack recipes/*.json.
+ *
+ * The recipe schema itself has been stable for years and the docs' vanilla
+ * examples still ship 1.12-1.20, but the platform guidance lists recipes as
+ * an "N-1" file type, and the item mismatch above is a good argument for not
+ * leaving any file several drops behind the client that has to read it.
  */
-export const RECIPE_FORMAT_VERSION = '1.20.10' as const;
+export const RECIPE_FORMAT_VERSION = '1.26.40' as const;
 
 /**
  * format_version for behavior-pack blocks/*.json (Milestone 5).
  */
-export const BLOCK_FORMAT_VERSION = '1.21.30' as const;
+export const BLOCK_FORMAT_VERSION = '1.26.40' as const;
 
 /**
  * Pack version reported in both manifests. Bumped when a kid re-exports so

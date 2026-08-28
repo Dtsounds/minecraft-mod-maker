@@ -73,7 +73,7 @@ const manifest = (name: string, type: 'data' | 'resources', header: string, mod:
     description: 'Resource pack liveness probe',
     uuid: header,
     version,
-    min_engine_version: [1, 21, 0],
+    min_engine_version: [1, 26, 0],
   },
   modules: [{ description: name, type, uuid: mod, version }],
   ...(deps ? { dependencies: deps } : {}),
@@ -87,19 +87,34 @@ zip.file(
   `${FOLDER}_BP/manifest.json`,
   json(manifest('Diagnostic BP', 'data', bpHeader, bpModule, [{ uuid: rpHeader, version }])),
 );
-zip.file(
-  `${FOLDER}_BP/items/custom.json`,
-  json({
-    format_version: '1.21.30',
-    'minecraft:item': {
-      description: { identifier: `${NS}:custom`, menu_category: { category: 'items' } },
-      components: {
-        'minecraft:icon': { textures: { default: 'diag_custom' } },
-        'minecraft:display_name': { value: 'Diag Custom' },
-        'minecraft:max_stack_size': 64,
-      },
+const customItem = (id: string, name: string, formatVersion: string, icon: object) => ({
+  format_version: formatVersion,
+  'minecraft:item': {
+    description: { identifier: `${NS}:${id}`, menu_category: { category: 'items' } },
+    components: {
+      'minecraft:icon': icon,
+      'minecraft:display_name': { value: name },
+      'minecraft:max_stack_size': 64,
     },
-  }),
+  },
+});
+
+// THE VARIABLE UNDER TEST: item format_version. The client is 1.26.45
+// internally, so a 1.21.30 file is five drops behind, and minecraft:icon
+// changed shape in between. P and Q differ ONLY in schema version.
+zip.file(
+  `${FOLDER}_BP/items/p_old_format.json`,
+  json(customItem('p_old_format', 'Diag P Old 1.21.30', '1.21.30', { textures: { default: 'diag_custom' } })),
+);
+zip.file(
+  `${FOLDER}_BP/items/q_new_format.json`,
+  json(customItem('q_new_format', 'Diag Q New 1.26.40', '1.26.40', { textures: { default: 'diag_custom' } })),
+);
+// R pairs the OLD schema with the OLD field, which is at least self
+// consistent — if R works and Q does not, the fix is to go backwards.
+zip.file(
+  `${FOLDER}_BP/items/r_old_both.json`,
+  json(customItem('r_old_both', 'Diag R Old+texture', '1.21.30', { texture: 'diag_custom' })),
 );
 
 // ---- Resource pack ---------------------------------------------------------
@@ -126,7 +141,16 @@ zip.file(
   }),
 );
 
-zip.file(`${FOLDER}_RP/texts/en_US.lang`, `item.${NS}:custom=Diag Custom\npack.name=Diagnostic\n`);
+zip.file(
+  `${FOLDER}_RP/texts/en_US.lang`,
+  [
+    `item.${NS}:p_old_format=Diag P Old 1.21.30`,
+    `item.${NS}:q_new_format=Diag Q New 1.26.40`,
+    `item.${NS}:r_old_both=Diag R Old plus texture`,
+    'pack.name=Diagnostic',
+    '',
+  ].join('\n'),
+);
 zip.file(`${FOLDER}_RP/texts/languages.json`, json(['en_US']));
 
 const bytes = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
@@ -138,6 +162,8 @@ console.log(`Wrote ${outPath} (${bytes.byteLength} bytes)\n`);
 console.log('Activate BOTH packs, then:');
 console.log('  /give @s apple          -> MAGENTA if the resource pack is live');
 console.log('  /give @s diamond        -> CYAN    if the resource pack is live');
-console.log('  /give @s diag:custom    -> GREEN   if custom item textures resolve');
+console.log('  /give @s diag:p_old_format -> GREEN if 1.21.30 + textures.default works');
+console.log('  /give @s diag:q_new_format -> GREEN if 1.26.40 + textures.default works');
+console.log('  /give @s diag:r_old_both   -> GREEN if 1.21.30 + texture works');
 console.log('\nIf apple/diamond look normal, the resource pack is not being applied,');
 console.log('and no amount of custom-item tweaking will matter.');

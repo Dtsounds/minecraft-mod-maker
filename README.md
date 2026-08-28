@@ -58,16 +58,22 @@ choice.
 | Thing | Value |
 | --- | --- |
 | manifest `format_version` | `2` (v3 is preview-only) |
-| `min_engine_version` | `[1, 21, 0]` |
-| items `format_version` | `"1.21.30"` |
-| recipes `format_version` | `"1.20.10"` |
+| `min_engine_version` | `[1, 26, 0]` |
+| items `format_version` | `"1.26.40"` |
+| recipes `format_version` | `"1.26.40"` |
 | `textures/*_texture.json` | no `format_version` (none exists for these) |
 
-`min_engine_version` is deliberately conservative. Microsoft's guidance is to
-target the newest release, but that exists for Marketplace conformance; here
-the priority is the opposite — the file has to import on whatever build is on
-a kid's tablet. `min_engine_version` is a floor, so a lower value works on more
-devices and costs nothing on newer ones.
+**Version numbering:** since 2026 the retail client shows a year-based string
+(e.g. `v26.45`), but pack JSON still uses the old scheme — that same build is
+`1.26.45` internally. A client displaying "26.45" wants 1.26.x content.
+
+These originally targeted 1.21.x, on the reasoning that `min_engine_version`
+is only a floor so a low value maximises the range of clients that can load a
+kid's add-on. **That was the wrong trade.** Bedrock auto-updates on every
+platform, so almost nobody runs an old client, while a stale schema actively
+breaks on current ones: `minecraft:icon` changed shape between 1.21 and 1.26,
+and declaring a newer field under an older `format_version` yields items that
+load and register but render invisible. Target the current release.
 
 Two details in `OPUS_BUILD_PROMPT.md` did not match the live docs, and the docs
 won:
