@@ -3,13 +3,19 @@ import { HomeScreen } from './screens/HomeScreen';
 import { NewModScreen } from './screens/NewModScreen';
 import { EditorScreen } from './screens/EditorScreen';
 import { PixelEditor } from './components/PixelEditor/PixelEditor';
+import { ItemScreen } from './screens/ItemScreen';
 import { deleteProject, listProjects, saveProject } from './storage/db';
 import { useAutosave } from './storage/useAutosave';
-import { createProject, bumpVersion } from './bedrock/project';
+import { createProject, createItem, bumpVersion } from './bedrock/project';
 import { exportProject } from './bedrock/package';
 import type { ModItem, ModProject } from './bedrock/types';
 
-type Screen = { name: 'home' } | { name: 'new' } | { name: 'editor' } | { name: 'icon' };
+type Screen =
+  | { name: 'home' }
+  | { name: 'new' }
+  | { name: 'editor' }
+  | { name: 'icon' }
+  | { name: 'item'; itemId: string };
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'home' });
@@ -19,6 +25,9 @@ export default function App() {
   const [exporting, setExporting] = useState(false);
 
   const saveState = useAutosave(project);
+
+  const editingItem =
+    screen.name === 'item' ? (project?.items.find((i) => i.id === screen.itemId) ?? null) : null;
 
   const refresh = useCallback(async () => {
     setProjects(await listProjects());
@@ -68,6 +77,22 @@ export default function App() {
     [refresh],
   );
 
+  const handleAddItem = useCallback(() => {
+    const item = createItem('sword');
+    update((draft) => ({ ...draft, items: [...draft.items, item] }));
+    setScreen({ name: 'item', itemId: item.id });
+  }, [update]);
+
+  const handleItemChange = useCallback(
+    (next: ModItem) => {
+      update((draft) => ({
+        ...draft,
+        items: draft.items.map((i) => (i.id === next.id ? next : i)),
+      }));
+    },
+    [update],
+  );
+
   const handleDeleteItem = useCallback(
     (item: ModItem) => {
       update((draft) => ({ ...draft, items: draft.items.filter((i) => i.id !== item.id) }));
@@ -104,6 +129,15 @@ export default function App() {
           <NewModScreen onCreate={handleCreate} onCancel={() => setScreen({ name: 'home' })} />
         )}
 
+        {screen.name === 'item' && project && editingItem && (
+          <ItemScreen
+            item={editingItem}
+            namespace={project.namespace}
+            onChange={handleItemChange}
+            onDone={() => setScreen({ name: 'editor' })}
+          />
+        )}
+
         {screen.name === 'icon' && project && (
           <div className="card">
             <PixelEditor
@@ -128,12 +162,8 @@ export default function App() {
               void refresh();
             }}
             onExport={handleExport}
-            onAddItem={() => {
-              /* Milestone 3 */
-            }}
-            onEditItem={() => {
-              /* Milestone 3 */
-            }}
+            onAddItem={handleAddItem}
+            onEditItem={(item) => setScreen({ name: 'item', itemId: item.id })}
             onDeleteItem={handleDeleteItem}
             onEditIcon={() => setScreen({ name: 'icon' })}
           />
