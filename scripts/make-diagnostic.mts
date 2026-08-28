@@ -97,15 +97,15 @@ zip.file(
 );
 
 // A. texture key style
-zip.file(`${FOLDER}_BP/items/a_ns_key.json`, json(item('a_ns_key', 'A - NAMESPACED key', `${NS}:ns_key`)));
-zip.file(`${FOLDER}_BP/items/b_plain_key.json`, json(item('b_plain_key', 'B - PLAIN key', 'plain_key')));
+zip.file(`${FOLDER}_BP/items/a_ns_key.json`, json(item('a_ns_key', 'Diag A Namespaced', `${NS}:ns_key`)));
+zip.file(`${FOLDER}_BP/items/b_plain_key.json`, json(item('b_plain_key', 'Diag B Plain', 'plain_key')));
 
 // B. use_animation shape. Both reference the plain key so texture style is not
 // a second variable inside this test.
 zip.file(
   `${FOLDER}_BP/items/c_food_object.json`,
   json(
-    item('c_food_object', 'C - food OBJECT anim', 'plain_key', {
+    item('c_food_object', 'Diag C Food Object', 'plain_key', {
       ...FOOD_BASE,
       'minecraft:use_animation': { value: 'eat' },
     }),
@@ -114,7 +114,7 @@ zip.file(
 zip.file(
   `${FOLDER}_BP/items/d_food_string.json`,
   json(
-    item('d_food_string', 'D - food STRING anim', 'plain_key', {
+    item('d_food_string', 'Diag D Food String', 'plain_key', {
       ...FOOD_BASE,
       'minecraft:use_animation': 'eat',
     }),
@@ -123,7 +123,7 @@ zip.file(
 // Control: food with no use_animation at all — what currently ships.
 zip.file(
   `${FOLDER}_BP/items/e_food_none.json`,
-  json(item('e_food_none', 'E - food NO anim (current)', 'plain_key', { ...FOOD_BASE })),
+  json(item('e_food_none', 'Diag E Food None', 'plain_key', { ...FOOD_BASE })),
 );
 
 // C. trivial recipe: one stick -> one B item.
@@ -165,11 +165,11 @@ zip.file(
 zip.file(
   `${FOLDER}_RP/texts/en_US.lang`,
   [
-    `item.${NS}:a_ns_key=A - NAMESPACED key`,
-    `item.${NS}:b_plain_key=B - PLAIN key`,
-    `item.${NS}:c_food_object=C - food OBJECT anim`,
-    `item.${NS}:d_food_string=D - food STRING anim`,
-    `item.${NS}:e_food_none=E - food NO anim`,
+    `item.${NS}:a_ns_key=Diag A Namespaced`,
+    `item.${NS}:b_plain_key=Diag B Plain`,
+    `item.${NS}:c_food_object=Diag C Food Object`,
+    `item.${NS}:d_food_string=Diag D Food String`,
+    `item.${NS}:e_food_none=Diag E Food None`,
     'pack.name=Diagnostic',
     '',
   ].join('\n'),
