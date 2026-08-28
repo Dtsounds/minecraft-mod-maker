@@ -1,0 +1,340 @@
+/* ------------------------------------------------------------------
+   Bedrock Mod Maker design system.
+   Bright, game-like, high contrast. Every interactive target is at
+   least 48px so it works with a finger on a tablet, not just a mouse.
+   ------------------------------------------------------------------ */
+
+:root {
+  --bg: #2a1b47;
+  --bg-deep: #1d1231;
+  --panel: #3b2a5e;
+  --panel-2: #4a3672;
+  --ink: #ffffff;
+  --ink-dim: #cbbce6;
+  --line: #5c46884d;
+
+  --grass: #5fd35f;
+  --grass-dark: #3ba03b;
+  --gold: #ffd447;
+  --gold-dark: #d9a800;
+  --sky: #45b7f5;
+  --sky-dark: #1f8ac4;
+  --berry: #ff5c8a;
+  --berry-dark: #d62f60;
+  --violet: #a069df;
+
+  --radius: 18px;
+  --radius-sm: 12px;
+  --tap: 48px;
+  --shadow: 0 6px 0 rgba(0, 0, 0, 0.28);
+  --font: 'Baloo 2', 'Comic Sans MS', 'Segoe UI Rounded', 'Trebuchet MS', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg);
+  background-image: radial-gradient(circle at 20% 0%, #4a2f6d 0%, transparent 55%),
+    radial-gradient(circle at 90% 10%, #35406e 0%, transparent 50%);
+  background-attachment: fixed;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+}
+
+h2 {
+  font-size: clamp(1.3rem, 2.6vw, 1.7rem);
+}
+
+p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* --- Layout ------------------------------------------------------- */
+
+.app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px clamp(14px, 3vw, 28px);
+  background: #00000038;
+  border-bottom: 3px solid #00000030;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(8px);
+  flex-wrap: wrap;
+}
+
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 1.15rem;
+  margin-right: auto;
+}
+
+.topbar__logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(160deg, var(--grass), var(--sky));
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  box-shadow: inset 0 -3px 0 #00000040;
+}
+
+.page {
+  flex: 1;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: clamp(16px, 3vw, 32px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 2.5vw, 26px);
+}
+
+.card {
+  background: var(--panel);
+  border: 3px solid #00000030;
+  border-radius: var(--radius);
+  padding: clamp(16px, 2.5vw, 24px);
+  box-shadow: var(--shadow);
+}
+
+.card--flat {
+  box-shadow: none;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.muted {
+  color: var(--ink-dim);
+}
+
+.tiny {
+  font-size: 0.85rem;
+}
+
+/* --- Buttons ------------------------------------------------------ */
+
+.btn {
+  min-height: var(--tap);
+  padding: 0 22px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1b1230;
+  background: var(--gold);
+  box-shadow: 0 5px 0 var(--gold-dark);
+  transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--gold-dark);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn:focus-visible {
+  outline: 4px solid #ffffffcc;
+  outline-offset: 3px;
+}
+
+.btn--go {
+  background: var(--grass);
+  box-shadow: 0 5px 0 var(--grass-dark);
+}
+.btn--go:active:not(:disabled) {
+  box-shadow: 0 1px 0 var(--grass-dark);
+}
+
+.btn--sky {
+  background: var(--sky);
+  box-shadow: 0 5px 0 var(--sky-dark);
+  color: #08243a;
+}
+.btn--sky:active:not(:disabled) {
+  box-shadow: 0 1px 0 var(--sky-dark);
+}
+
+.btn--danger {
+  background: var(--berry);
+  box-shadow: 0 5px 0 var(--berry-dark);
+  color: #3a0a1a;
+}
+.btn--danger:active:not(:disabled) {
+  box-shadow: 0 1px 0 var(--berry-dark);
+}
+
+.btn--ghost {
+  background: #ffffff1f;
+  color: var(--ink);
+  box-shadow: none;
+  border: 2px solid #ffffff33;
+}
+.btn--ghost:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+.btn--big {
+  min-height: 62px;
+  font-size: 1.25rem;
+  padding: 0 30px;
+}
+
+.btn--icon {
+  padding: 0;
+  width: var(--tap);
+  min-width: var(--tap);
+}
+
+/* --- Form controls ------------------------------------------------ */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.field__label {
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.field__hint {
+  font-size: 0.9rem;
+  color: var(--ink-dim);
+}
+
+.input,
+.textarea {
+  min-height: var(--tap);
+  padding: 12px 16px;
+  font-family: inherit;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1b1230;
+  background: #fff;
+  border: 3px solid #00000030;
+  border-radius: var(--radius-sm);
+  width: 100%;
+}
+
+.textarea {
+  min-height: 92px;
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.input:focus-visible,
+.textarea:focus-visible {
+  outline: 4px solid var(--gold);
+  outline-offset: 1px;
+}
+
+/* --- Utility ------------------------------------------------------ */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #ffffff1f;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.grid-auto {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
