@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc -b --noEmit",
     "sample": "tsx scripts/make-sample.mts",
-    "diagnostic": "tsx scripts/make-diagnostic.mts"
+    "diagnostic": "tsx scripts/make-diagnostic.mts",
+    "install-local": "tsx scripts/install-local.mts"
   },
   "dependencies": {
     "jszip": "^3.10.1",
