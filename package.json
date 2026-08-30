@@ -12,7 +12,8 @@
     "typecheck": "tsc -b --noEmit",
     "sample": "tsx scripts/make-sample.mts",
     "diagnostic": "tsx scripts/make-diagnostic.mts",
-    "install-local": "tsx scripts/install-local.mts"
+    "install-local": "tsx scripts/install-local.mts",
+    "check-log": "tsx scripts/check-log.mts"
   },
   "dependencies": {
     "jszip": "^3.10.1",

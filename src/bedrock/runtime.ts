@@ -235,6 +235,74 @@ function jsLiteral(value: unknown): string {
   );
 }
 
+/**
+ * A diagnostic block appended ONLY for install-local. Never in a kid's export.
+ *
+ * Every action in `perform` is a call whose exact signature I inferred from
+ * reference docs — argument order, ticks vs seconds, options-object shapes.
+ * Those are precisely the guesses that have been wrong before, and in Bedrock
+ * a wrong one fails silently: the rule just does nothing.
+ *
+ * So the runtime tests itself. A few seconds after load it calls every action
+ * once and reports which threw. Script `console.*` output is captured in the
+ * content log, which `npm run check-log` reads — so verifying all eight
+ * actions costs one world load and no gameplay at all. Results also go to chat,
+ * partly as a convenience and partly so that if the log channel turns out not
+ * to capture console output, that fact is itself visible.
+ */
+const SELF_TEST = String.raw`
+system.runTimeout(function () {
+  var players = world.getAllPlayers();
+  if (players.length === 0) {
+    console.warn("[SELFTEST] no player yet; skipping");
+    return;
+  }
+  var player = players[0];
+  var dim = player.dimension;
+  var at = pointOf(player);
+  var results = [];
+
+  function attempt(name, fn) {
+    try {
+      fn();
+      results.push("OK   " + name);
+    } catch (err) {
+      results.push("FAIL " + name + " :: " + (err && err.message ? err.message : String(err)));
+    }
+  }
+
+  attempt("effect", function () {
+    player.addEffect("speed", 100, { amplifier: 0, showParticles: true });
+  });
+  attempt("message", function () {
+    player.sendMessage("selftest");
+  });
+  attempt("lightning", function () {
+    dim.spawnEntity("minecraft:lightning_bolt", at);
+  });
+  attempt("explode", function () {
+    dim.createExplosion(at, 1, { breaksBlocks: false, causesFire: false });
+  });
+  attempt("summon", function () {
+    dim.spawnEntity("minecraft:chicken", at);
+  });
+  attempt("giveItem", function () {
+    dim.spawnItem(new ItemStack("minecraft:diamond", 1), at);
+  });
+  attempt("playSound", function () {
+    dim.playSound("random.levelup", at);
+  });
+  attempt("setOnFire", function () {
+    player.setOnFire(1, true);
+  });
+
+  for (var i = 0; i < results.length; i++) {
+    console.warn("[SELFTEST] " + results[i]);
+    player.sendMessage("[SELFTEST] " + results[i]);
+  }
+}, 100);
+`;
+
 export interface RuntimeOptions {
   /**
    * When set, the runtime announces how many rules loaded on world load.
@@ -246,6 +314,12 @@ export interface RuntimeOptions {
    * look identical from inside the game. Off for a kid's real export.
    */
   banner?: string;
+  /**
+   * Append the self-test block. install-local only — see `SELF_TEST`.
+   * Appended rather than woven in, so the runtime a kid ships stays the
+   * byte-identical constant the tests assert on.
+   */
+  selfTest?: boolean;
 }
 
 /** The complete `scripts/main.js` for a mod. */
@@ -261,5 +335,5 @@ export function buildScriptMain(rules: CompiledRule[], options: RuntimeOptions =
     RUNTIME_MARKER,
   ].join('\n');
 
-  return `${header}\n${RUNTIME_BODY}`;
+  return `${header}\n${RUNTIME_BODY}${options.selfTest ? SELF_TEST : ''}`;
 }

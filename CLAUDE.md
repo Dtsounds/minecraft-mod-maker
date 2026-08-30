@@ -38,6 +38,37 @@ Minecraft's live data on this machine is the **standalone launcher** path:
 shell access — read `minecraftWorlds/<world>/world_behavior_packs.json` to see
 what is *actually* loaded rather than asking.
 
+## Read the content log before asking Dave anything
+
+```bash
+npm run check-log
+```
+
+**Minecraft writes down exactly what it rejected, every launch**, in
+`%APPDATA%\Minecraft Bedrock\logs\ContentLog*.txt` — the offending file, the
+identifier, and the reason. This is a *free, automated* verification channel
+and it went unread for the first two days of this project.
+
+It was holding this the whole time:
+
+```
+[Recipes][error] recipes/test_sword.json | 1.20+ Recipes require unlock data
+```
+
+Every crafting recipe the generator had ever produced was being rejected at
+load. The item still existed and still answered `/give`, so the mod looked
+fine, the suite was green, and Milestone 3 was marked "verified on-device".
+
+`check-log` also warns when the packs on disk are **newer than the log** — that
+means the log describes a build that no longer exists, which is the same
+stale-build trap that once wasted four rounds.
+
+The runtime additionally self-tests: `install-local` appends a block that calls
+every rule action once a few seconds after load and reports each one via
+`console.warn`, which lands in the content log. So all eight actions are
+verified by loading the world once and running `check-log` — no gameplay, and
+nothing for Dave to observe or interpret. That block never ships to a kid.
+
 ## Asking Dave to test
 
 He has limited patience for round-trips, and rightly so. Before asking:
@@ -94,7 +125,7 @@ do not use.
 
 ## Testing
 
-`npm test` — 230 tests. `npm run build`, `npx tsc -b --noEmit`.
+`npm test` — 233 tests. `npm run build`, `npx tsc -b --noEmit`.
 
 The suite verifies our bytes against our own understanding, which is *not* the
 same as the game agreeing: it passed cleanly through four real on-device bugs.

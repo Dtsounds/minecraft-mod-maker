@@ -413,7 +413,7 @@ if (!live) {
 console.log(`\nInstalling into the most recently used one:\n  ${live}\n`);
 
 // banner: makes the one on-device check decisive (see the rules block above).
-const addon = buildAddon(project, { banner: 'LocalTest' });
+const addon = buildAddon(project, { banner: 'LocalTest', selfTest: true });
 await install(live, addon);
 
 // Inject into the most recently played world and activate it there. The dev

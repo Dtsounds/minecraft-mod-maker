@@ -26,6 +26,8 @@ export interface BuildOptions {
    * a kid's export never announces itself in chat. See `RuntimeOptions`.
    */
   banner?: string;
+  /** Append the runtime self-test. install-local only. */
+  selfTest?: boolean;
 }
 
 export function buildAddon(project: ModProject, options: BuildOptions = {}): BuiltAddon {
@@ -251,7 +253,7 @@ export function buildAddon(project: ModProject, options: BuildOptions = {}): Bui
   });
 
   if (rules.length > 0) {
-    text(`${bp}/${SCRIPT_ENTRY}`, buildScriptMain(rules, { banner: options.banner }));
+    text(`${bp}/${SCRIPT_ENTRY}`, buildScriptMain(rules, { banner: options.banner, selfTest: options.selfTest }));
   }
 
   // --- Resource pack texture atlases ---------------------------------------

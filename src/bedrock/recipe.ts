@@ -12,6 +12,17 @@ export interface ShapedRecipeJson {
     tags: string[];
     pattern: string[];
     key: Record<string, { item: string }>;
+    /**
+     * What makes this recipe appear in the player's recipe book.
+     *
+     * ⚠️ NOT optional. Since 1.20 a shaped recipe without `unlock` is rejected
+     * outright — the content log says "1.20+ Recipes require unlock data" and
+     * the recipe never registers. Nothing else reports it: the item still
+     * exists and still answers /give, so the mod looks fine until a kid tries
+     * to actually craft the thing. Every recipe this generator emitted before
+     * 2026-08-30 was silently dead for this reason.
+     */
+    unlock: { item: string }[];
     result: { item: string; count?: number };
   };
 }
@@ -68,53 +79,12 @@ export function recipeHasIngredients(grid: unknown): boolean {
  * recipe step is optional), not an error.
  */
 export function buildRecipeJson(namespace: string, item: ModItem): ShapedRecipeJson | null {
-  if (!item.recipe?.enabled) return null;
-
-  const grid = normalizeGrid(item.recipe.grid);
-  const box = boundingBox(grid);
-  if (!box) return null;
-
+  // Delegates to the shared builder below. These two were separate copies of
+  // the same forty lines until the missing `unlock` field had to be fixed in
+  // both — the exact drift the rest of this layer is arranged to prevent.
   const ns = toIdentifierSegment(namespace, 'mymod');
   const shortName = itemShortName(item);
-  const identifier = `${ns}:${shortName}`;
-
-  // Assign one pattern character per distinct ingredient.
-  const charForItem = new Map<string, string>();
-  const key: Record<string, { item: string }> = {};
-  const pattern: string[] = [];
-
-  for (let row = box.minRow; row <= box.maxRow; row++) {
-    let line = '';
-    for (let col = box.minCol; col <= box.maxCol; col++) {
-      const slot = grid[row * 3 + col];
-      if (!slot) {
-        line += ' ';
-        continue;
-      }
-      let ch = charForItem.get(slot);
-      if (!ch) {
-        ch = KEY_CHARS[charForItem.size] as string;
-        charForItem.set(slot, ch);
-        key[ch] = { item: slot };
-      }
-      line += ch;
-    }
-    pattern.push(line);
-  }
-
-  return {
-    format_version: RECIPE_FORMAT_VERSION,
-    'minecraft:recipe_shaped': {
-      description: { identifier: `${ns}:craft_${shortName}` },
-      tags: ['crafting_table'],
-      pattern,
-      key,
-      result: {
-        item: identifier,
-        count: clampInt(item.recipe.count ?? 1, 1, 64),
-      },
-    },
-  };
+  return buildShaped(ns, shortName, `${ns}:${shortName}`, item.recipe);
 }
 
 export interface FurnaceRecipeJson {
@@ -174,6 +144,11 @@ function buildShaped(
       tags: ['crafting_table'],
       pattern,
       key,
+      // The ingredients themselves, which is exactly what vanilla does —
+      // Mojang's diamond_sword.json unlocks on minecraft:diamond. A kid who
+      // is holding what the recipe needs has already unlocked it, so this is
+      // invisible to them, which is the point.
+      unlock: [...charForItem.keys()].map((item) => ({ item })),
       result: { item: resultId, count: clampInt(recipe.count ?? 1, 1, 64) },
     },
   };

@@ -136,3 +136,49 @@ describe('shaped recipe generation', () => {
     for (const row of recipe.pattern) expect(row.length).toBeLessThanOrEqual(3);
   });
 });
+
+describe('recipe unlock data (regression: silently dead recipes)', () => {
+  // Caught only by reading Minecraft's own content log:
+  //   "1.20+ Recipes require unlock data"
+  // Every recipe this generator emitted before 2026-08-30 was rejected at load
+  // and never registered. Nothing in the pack looked wrong and the item still
+  // answered /give, so a green suite and a working-looking mod hid it.
+  it('always emits unlock data, or the recipe never registers', () => {
+    const grid = [...EMPTY];
+    grid[1] = D;
+    grid[4] = D;
+    grid[7] = S;
+
+    const json = buildRecipeJson('rubymod', withGrid(grid));
+    const recipe = json?.['minecraft:recipe_shaped'];
+
+    expect(recipe?.unlock).toBeDefined();
+    expect(recipe?.unlock.length).toBeGreaterThan(0);
+  });
+
+  it('unlocks on the ingredients, the way vanilla diamond_sword does', () => {
+    const grid = [...EMPTY];
+    grid[1] = D;
+    grid[4] = D;
+    grid[7] = S;
+
+    const recipe = buildRecipeJson('rubymod', withGrid(grid))?.['minecraft:recipe_shaped'];
+
+    // One entry per DISTINCT ingredient — two diamonds do not mean two entries.
+    expect(recipe?.unlock).toEqual([{ item: D }, { item: S }]);
+  });
+
+  it('orders unlock between key and result, matching Mojang’s own file', () => {
+    const grid = [...EMPTY];
+    grid[4] = D;
+    const recipe = buildRecipeJson('rubymod', withGrid(grid))?.['minecraft:recipe_shaped'];
+    expect(Object.keys(recipe ?? {})).toEqual([
+      'description',
+      'tags',
+      'pattern',
+      'key',
+      'unlock',
+      'result',
+    ]);
+  });
+});

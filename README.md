@@ -12,10 +12,11 @@ leaves the browser; projects autosave to IndexedDB.
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 230 tests
+npm test           # 233 tests
 npm run build
 npm run sample     # writes a real .mcaddon to sample-output/
 npm run install-local  # installs straight into the live Minecraft world
+npm run check-log      # what Minecraft itself said about the packs, last launch
 ```
 
 ## What's built
@@ -29,7 +30,7 @@ npm run install-local  # installs straight into the live Minecraft world
 | 4 — Export onboarding + My Mods | ✅ verified on-device |
 | 5 — Block creator | ✅ verified on-device |
 | 6 — Mob creator | ✅ verified on-device |
-| 7 — Rules (Script API) | 🔬 built, 230 tests, awaiting on-device check |
+| 7 — Rules (Script API) | ✅ script module verified loading on-device |
 
 ## Before changing Bedrock JSON
 
