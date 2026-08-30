@@ -2,10 +2,22 @@ import { uuid, toNamespace } from './ids';
 import { blankTexture, normalizeTexture } from './texture';
 import { ITEM_PRESETS, PROJECTILE_KINDS } from './presets';
 import { normalizeGrid } from './recipe';
-import type { BlockDrop, ItemKind, ModBlock, ModItem, ModMob, ModProject, MobDrop, Texture } from './types';
+import type {
+  BlockDrop,
+  ItemKind,
+  ModBlock,
+  ModItem,
+  ModMob,
+  ModProject,
+  ModRule,
+  MobDrop,
+  RuleTarget,
+  Texture,
+} from './types';
 import { BLOCK_LOOKS, BLOCK_TOOLS, GLOW, HARDNESS } from './blockPresets';
 import { MOB_MOODS, isMobFood } from './mobPresets';
 import { MOB_RIGS, mobRig } from './mobGeometry';
+import { ACTIONS, TRIGGERS, isRuleEffect, isRuleSound } from './rulePresets';
 
 /** A pleasant default icon so a brand-new mod is never a blank square. */
 function defaultIcon(): Texture {
@@ -34,11 +46,13 @@ export function createProject(name: string, description: string): ModProject {
       bpModule: uuid(),
       rpHeader: uuid(),
       rpModule: uuid(),
+      bpScript: uuid(),
     },
     version: [1, 0, 0],
     items: [],
     blocks: [],
     mobs: [],
+    rules: [],
     createdAt: now,
     updatedAt: now,
   };
@@ -161,6 +175,60 @@ export function normalizeMob(raw: Partial<ModMob> | undefined): ModMob {
   };
 }
 
+export function createRule(): ModRule {
+  return {
+    id: uuid(),
+    name: '',
+    enabled: true,
+    trigger: 'useItem',
+    subjectId: null,
+    action: 'effect',
+    effect: 'speed',
+    strength: 1,
+    seconds: 10,
+    message: '',
+    radius: 3,
+    fireSeconds: 5,
+    summonTarget: { kind: 'none' },
+    summonCount: 1,
+    giveTarget: { kind: 'none' },
+    giveCount: 1,
+    sound: 'random.levelup',
+  };
+}
+
+/** Repair a rule loaded from storage. */
+export function normalizeRule(raw: Partial<ModRule> | undefined): ModRule {
+  const base = createRule();
+  const target = (value: unknown): RuleTarget => {
+    if (value && typeof value === 'object' && 'kind' in value) {
+      const t = value as RuleTarget;
+      if (t.kind === 'vanilla' && typeof t.id === 'string') return t;
+      if (t.kind === 'mine' && typeof t.refId === 'string') return t;
+    }
+    return { kind: 'none' };
+  };
+  return {
+    ...base,
+    ...raw,
+    id: typeof raw?.id === 'string' && raw.id ? raw.id : base.id,
+    name: typeof raw?.name === 'string' ? raw.name : '',
+    enabled: raw?.enabled !== false,
+    trigger: TRIGGERS.some((t) => t.trigger === raw?.trigger)
+      ? (raw?.trigger as ModRule['trigger'])
+      : 'useItem',
+    subjectId: typeof raw?.subjectId === 'string' && raw.subjectId ? raw.subjectId : null,
+    action: ACTIONS.some((a) => a.action === raw?.action)
+      ? (raw?.action as ModRule['action'])
+      : 'effect',
+    effect: isRuleEffect(raw?.effect) ? raw.effect : 'speed',
+    sound: isRuleSound(raw?.sound) ? raw.sound : 'random.levelup',
+    message: typeof raw?.message === 'string' ? raw.message : '',
+    summonTarget: target(raw?.summonTarget),
+    giveTarget: target(raw?.giveTarget),
+  };
+}
+
 /**
  * Repair anything loaded from storage. Autosaved state can predate a schema
  * change or be hand-edited; the app must still open it rather than crash.
@@ -203,11 +271,16 @@ export function normalizeProject(raw: Partial<ModProject> | undefined): ModProje
       bpModule: raw?.uuids?.bpModule ?? base.uuids.bpModule,
       rpHeader: raw?.uuids?.rpHeader ?? base.uuids.rpHeader,
       rpModule: raw?.uuids?.rpModule ?? base.uuids.rpModule,
+      // Projects autosaved before Phase 4 have no script uuid. Minting one on
+      // load is safe: it only ever names a module that did not exist in the
+      // previously exported pack, so nothing can collide.
+      bpScript: raw?.uuids?.bpScript ?? base.uuids.bpScript,
     },
     version: Array.isArray(raw?.version) && raw.version.length === 3 ? (raw.version as [number, number, number]) : [1, 0, 0],
     items: Array.isArray(raw?.items) ? raw.items.map((i) => normalizeItem(i)) : [],
     blocks: Array.isArray(raw?.blocks) ? raw.blocks.map((b) => normalizeBlock(b)) : [],
     mobs: Array.isArray(raw?.mobs) ? raw.mobs.map((m) => normalizeMob(m)) : [],
+    rules: Array.isArray(raw?.rules) ? raw.rules.map((r) => normalizeRule(r)) : [],
     createdAt: typeof raw?.createdAt === 'number' ? raw.createdAt : base.createdAt,
     updatedAt: typeof raw?.updatedAt === 'number' ? raw.updatedAt : base.updatedAt,
   };

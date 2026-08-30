@@ -6,6 +6,9 @@ import { buildClientEntityJson, buildEntityJson, buildMobLootTable, mobShortName
 import { buildGeometryJson, mobRig } from './mobGeometry';
 import { textureToPng } from './texture';
 import { toAddonFileName, toIdentifierSegment, toPackFolderName } from './ids';
+import { buildRuleTable } from './rules';
+import { buildScriptMain } from './runtime';
+import { SCRIPT_ENTRY } from './versions';
 import type { BuiltAddon, ModProject, PackFile } from './types';
 
 const json = (value: unknown): string => `${JSON.stringify(value, null, 2)}\n`;
@@ -17,7 +20,15 @@ const json = (value: unknown): string => `${JSON.stringify(value, null, 2)}\n`;
  * pure: project state in, list of files out. No DOM, no zip, no download —
  * which is what lets the tests assert on the exact bytes that ship.
  */
-export function buildAddon(project: ModProject): BuiltAddon {
+export interface BuildOptions {
+  /**
+   * Diagnostic banner for the script runtime. Set only by `install-local`;
+   * a kid's export never announces itself in chat. See `RuntimeOptions`.
+   */
+  banner?: string;
+}
+
+export function buildAddon(project: ModProject, options: BuildOptions = {}): BuiltAddon {
   const folder = toPackFolderName(project.name);
   const bp = `${folder}_BP`;
   const rp = `${folder}_RP`;
@@ -27,8 +38,20 @@ export function buildAddon(project: ModProject): BuiltAddon {
   const text = (path: string, content: string) => files.push({ path, kind: 'text', content });
   const binary = (path: string, content: Uint8Array) => files.push({ path, kind: 'binary', content });
 
+  // Where each of the kid's creations ended up, keyed by its project-local id.
+  // Populated as each registry is written so the recorded identifier is the
+  // de-duplicated one that actually ships, not the name it started with.
+  const itemIdentifierById = new Map<string, string>();
+  const blockIdentifierById = new Map<string, string>();
+  const mobIdentifierById = new Map<string, string>();
+
   // --- Manifests -----------------------------------------------------------
-  text(`${bp}/manifest.json`, json(buildBehaviorManifest(project)));
+  // The behavior manifest cannot be built yet: whether it declares a script
+  // module depends on whether any rule survives compilation, and that is not
+  // known until every registry has its final identifiers. Reserve its slot so
+  // the file ordering stays exactly as it was before rules existed.
+  const bpManifestSlot = files.length;
+  text(`${bp}/manifest.json`, '');
   text(`${rp}/manifest.json`, json(buildResourceManifest(project)));
 
   // --- Pack icons ----------------------------------------------------------
@@ -55,6 +78,7 @@ export function buildAddon(project: ModProject): BuiltAddon {
 
     const scoped = { ...item, name: item.name };
     const identifier = `${ns}:${shortName}`;
+    itemIdentifierById.set(item.id, identifier);
 
     // Rebuild the JSON against the de-duplicated short name.
     const itemJson = buildItemJson(ns, scoped);
@@ -81,13 +105,6 @@ export function buildAddon(project: ModProject): BuiltAddon {
   const terrainData: Record<string, { textures: string }> = {};
   const usedBlockNames = new Set<string>();
 
-  // Map a kid's item id to its final namespaced identifier, so a block can
-  // drop one of their own items and still be de-duplicated consistently.
-  const itemIdentifierById = new Map<string, string>();
-  for (const item of project.items) {
-    itemIdentifierById.set(item.id, `${ns}:${itemShortName(item)}`);
-  }
-
   for (const block of project.blocks ?? []) {
     let shortName = blockShortName(block);
     if (usedBlockNames.has(shortName)) {
@@ -98,6 +115,7 @@ export function buildAddon(project: ModProject): BuiltAddon {
     usedBlockNames.add(shortName);
 
     const identifier = `${ns}:${shortName}`;
+    blockIdentifierById.set(block.id, identifier);
     // Texture keys, re-derived from the de-duplicated short name.
     const side = identifier;
     const top = `${identifier}_top`;
@@ -177,6 +195,7 @@ export function buildAddon(project: ModProject): BuiltAddon {
     usedMobNames.add(shortName);
 
     const identifier = `${ns}:${shortName}`;
+    mobIdentifierById.set(mob.id, identifier);
     const rig = mobRig(mob.rig);
 
     const entityJson = buildEntityJson(ns, mob);
@@ -221,6 +240,20 @@ export function buildAddon(project: ModProject): BuiltAddon {
     );
   }
 
+  // --- Rules (Milestone 7) -------------------------------------------------
+  // Compiled after every registry, so a rule always names the identifier that
+  // actually shipped. Rules that cannot run — a deleted subject, an unfinished
+  // action — are dropped by the compiler rather than shipped broken.
+  const rules = buildRuleTable(project, {
+    item: (id) => itemIdentifierById.get(id) ?? null,
+    block: (id) => blockIdentifierById.get(id) ?? null,
+    mob: (id) => mobIdentifierById.get(id) ?? null,
+  });
+
+  if (rules.length > 0) {
+    text(`${bp}/${SCRIPT_ENTRY}`, buildScriptMain(rules, { banner: options.banner }));
+  }
+
   // --- Resource pack texture atlases ---------------------------------------
   // These carry no format_version — the platform version guidance lists
   // textures/*_texture.json as "(no versioning concept)".
@@ -253,6 +286,15 @@ export function buildAddon(project: ModProject): BuiltAddon {
   text(`${rp}/texts/languages.json`, json(['en_US']));
   text(`${bp}/texts/en_US.lang`, `${langLines.join('\n')}\n`);
   text(`${bp}/texts/languages.json`, json(['en_US']));
+
+  // Now that the rule count is known, fill the slot reserved above. A mod with
+  // no runnable rules declares no script module at all, so it stays byte-for-
+  // byte what it was before Phase 4 existed.
+  files[bpManifestSlot] = {
+    path: `${bp}/manifest.json`,
+    kind: 'text',
+    content: json(buildBehaviorManifest(project, { scripts: rules.length > 0 })),
+  };
 
   return { fileName: toAddonFileName(project.name), files };
 }

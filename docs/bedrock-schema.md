@@ -172,7 +172,80 @@ only craftable from those exact squares.
 Furnace: `minecraft:recipe_furnace` with `input` and `output` as plain strings,
 `tags: ["furnace", "blast_furnace"]`.
 
-## Useful bedrock-samples paths
+## Script API (Phase 4) — RESEARCHED, NOT YET CLIENT-VERIFIED
+
+Everything above this section was confirmed in a live client. This section was
+not. Treat it as a starting hypothesis and move each fact up once it survives
+an `install-local` round.
+
+A script-enabled BP adds a **third module** and a **second kind of dependency**:
+
+```json
+"modules": [
+  { "type": "data",   "uuid": "<bp module>",     "version": [1, 0, 0] },
+  { "type": "script", "language": "javascript",
+    "entry": "scripts/main.js",
+    "uuid": "<a FIFTH uuid>", "version": [1, 0, 0] }
+],
+"dependencies": [
+  { "uuid": "<rp header>",          "version": [1, 0, 0] },
+  { "module_name": "@minecraft/server", "version": "2.0.0" }
+]
+```
+
+⚠️ **Two different dependency shapes in one array.** A pack dependency is
+`uuid` + a `[x,y,z]` array. A script-module dependency is `module_name` + a
+**string** semver. Same array, different schema.
+
+⚠️ **The version floor is the dangerous field.** Declare a version the engine
+does not have and the pack fails to load *entirely*. Within a major version
+Minecraft resolves like npm's `^`: a dependency on `2.0.0` "may actually have
+that dependency fulfilled with" a higher `2.x`. So a **low floor is strictly
+safer than a high one**, which is the opposite of Microsoft's published advice
+(that advice targets marketplace content chasing new APIs — not our case).
+
+Mapping the module version to the game build, since Learn's table is stale
+(it stops at 1.21.60 and was last touched 2025-07):
+
+| npm dist-tag | version string | implies game build |
+| --- | --- | --- |
+| `latest` (stable) | `2.9.0` | current retail — this client is 1.26.45 |
+| `rc` | `2.10.0-rc.1.26.50-preview.27` | 1.26.50 preview |
+| `beta` | `2.11.0-beta.1.26.50-preview.27` | 1.26.50 preview |
+
+The rc/beta tags embed the build number, which is what pins stable 2.9.0 to
+retail 1.26.4x. We target floor **`2.0.0`** (published, stable, same major).
+
+**Stable modules need no experiment.** Only `-beta` modules require the "Beta
+APIs" world toggle — a hard requirement for us, since a kid must never have to
+find a settings switch.
+
+Major 1 → 2 was a breaking change; 1.x and 2.x are different API surfaces.
+Verify any `world.afterEvents.*` name against the **v2** signature, not v1.
+
+⚠️ **The "V2 needs the Beta APIs experiment" line in the V2 Overview is
+stale.** It was written (ms.date 2025-07) while 2.0.0 was still beta, and the
+same page says "when version 2.0.0 comes out of beta and into stable...".
+It since has: npm's `latest` is a plain `2.9.0`. What settles it is the
+WorldAfterEvents reference in its **stable** view (updated 2026-08-18), which
+lists `worldLoad` — an event that *only exists in V2*, having been renamed from
+`worldInitialize` — with no experimental fence around it.
+
+Event names confirmed present in the stable set: `itemUse`, `playerBreakBlock`,
+`playerPlaceBlock`, `entityHitEntity`, `entityDie`, `entityHurt`,
+`playerSpawn`, `projectileHitEntity`, `worldLoad`. Anything wrapped in
+`moniker range="minecraft-bedrock-experimental"` on that page is *not* safe for
+us — it needs the experiment.
+
+Under V2 scripts run in **early execution**, where most of the `world` object
+throws. `world.afterEvents.*.subscribe` is explicitly allowed there; anything
+touching world state must wait for `worldLoad` or an event callback.
+
+Order note: import declarations hoist, so a `const` above an `import` is legal
+JavaScript. We still emit the import first — "legal per spec" and "what the
+engine does" have already diverged three times in this project.
+
+
 
 ```
 behavior_pack/items/apple.json                  simple item

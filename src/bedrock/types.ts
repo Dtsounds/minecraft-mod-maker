@@ -144,6 +144,83 @@ export interface ModMob {
   dropCount: number;
 }
 
+/** What starts a rule running. */
+export type TriggerKind =
+  | 'useItem'
+  | 'breakBlock'
+  | 'placeBlock'
+  | 'hitMob'
+  | 'mobDies'
+  | 'playerJoins';
+
+/** What the rule does when it fires. */
+export type ActionKind =
+  | 'effect'
+  | 'message'
+  | 'lightning'
+  | 'explode'
+  | 'summon'
+  | 'giveItem'
+  | 'playSound'
+  | 'setOnFire';
+
+/** Vanilla potion effect id, minus the `minecraft:` prefix. */
+export type RuleEffect =
+  | 'speed'
+  | 'jump_boost'
+  | 'strength'
+  | 'regeneration'
+  | 'resistance'
+  | 'fire_resistance'
+  | 'night_vision'
+  | 'invisibility'
+  | 'water_breathing'
+  | 'slow_falling'
+  | 'levitation'
+  | 'slowness'
+  | 'weakness'
+  | 'poison';
+
+export type RuleSound = string;
+
+/** Something the rule points at: a vanilla id, or one of the kid's own. */
+export type RuleTarget =
+  | { kind: 'none' }
+  | { kind: 'vanilla'; id: string }
+  | { kind: 'mine'; refId: string };
+
+/**
+ * One "When X happens, do Y" rule.
+ *
+ * Flat like ModItem: every action's fields live on the same record and the
+ * preset decides which are actually read. That keeps storage round-tripping
+ * trivial and means switching action type never loses the other settings.
+ */
+export interface ModRule {
+  id: string;
+  /** Kid-typed label, purely for their own list. Never reaches the game. */
+  name: string;
+  enabled: boolean;
+  trigger: TriggerKind;
+  /**
+   * Which of the kid's own creations the trigger watches — the `id` of a
+   * ModItem, ModBlock or ModMob. Null only for triggers that need no subject.
+   */
+  subjectId: string | null;
+  action: ActionKind;
+  effect: RuleEffect;
+  strength: number;
+  seconds: number;
+  message: string;
+  radius: number;
+  fireSeconds: number;
+  summonTarget: RuleTarget;
+  summonCount: number;
+  giveTarget: RuleTarget;
+  giveCount: number;
+  sound: RuleSound;
+}
+
 export interface ModProject {
   id: string;
   name: string;
@@ -158,12 +235,15 @@ export interface ModProject {
     bpModule: string;
     rpHeader: string;
     rpModule: string;
+    /** Script module. Only emitted when the mod actually has rules. */
+    bpScript: string;
   };
   /** Bumped on each export so re-imports replace the old copy. */
   version: [number, number, number];
   items: ModItem[];
   blocks: ModBlock[];
   mobs: ModMob[];
+  rules: ModRule[];
   createdAt: number;
   updatedAt: number;
 }

@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import type { ModBlock, ModItem, ModMob, ModProject } from '../bedrock/types';
+import type { ModBlock, ModItem, ModMob, ModProject, ModRule } from '../bedrock/types';
 import { TexturePreview } from '../components/TexturePreview';
 import { ITEM_PRESETS } from '../bedrock/presets';
+import { actionSpec, triggerSpec } from '../bedrock/rulePresets';
+import { ruleProblem } from '../bedrock/rules';
 import { isTextureEmpty } from '../bedrock/texture';
 import type { SaveState } from '../storage/useAutosave';
 
@@ -20,6 +22,9 @@ interface Props {
   onAddMob: () => void;
   onEditMob: (mob: ModMob) => void;
   onDeleteMob: (mob: ModMob) => void;
+  onAddRule: () => void;
+  onEditRule: (rule: ModRule) => void;
+  onDeleteRule: (rule: ModRule) => void;
   onEditIcon: () => void;
 }
 
@@ -51,11 +56,28 @@ export function EditorScreen({
   onAddMob,
   onEditMob,
   onDeleteMob,
+  onAddRule,
+  onEditRule,
+  onDeleteRule,
   onEditIcon,
 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const blocks = project.blocks ?? [];
   const mobs = project.mobs ?? [];
+  const rules = project.rules ?? [];
+
+  // Rules are dropped silently by the generator when they cannot run, so the
+  // warning has to happen here, before export — same split as "this item has
+  // no picture". Resolution goes through the project's own lists rather than
+  // final identifiers, which is all the UI needs to spot a dangling subject.
+  const ruleCtx = {
+    item: (id: string) => (project.items.some((i) => i.id === id) ? id : null),
+    block: (id: string) => (blocks.some((b) => b.id === id) ? id : null),
+    mob: (id: string) => (mobs.some((m) => m.id === id) ? id : null),
+  };
+  const ruleProblems = new Map(
+    rules.map((rule) => [rule.id, ruleProblem(rule, ruleCtx)] as const).filter(([, p]) => p),
+  );
   const emptyTextures = [
     ...project.items.filter((i) => isTextureEmpty(i.texture)),
     ...blocks.filter((b) => isTextureEmpty(b.texture)),
@@ -280,6 +302,80 @@ export function EditorScreen({
         )}
       </section>
 
+      <section className="stack">
+        <div className="row">
+          <h2>Rules</h2>
+          <span className="spacer" />
+          <button className="btn btn--sky" onClick={onAddRule}>
+            ➕ Add a rule
+          </button>
+        </div>
+
+        {rules.length === 0 && (
+          <div className="card card--flat empty">
+            <p className="muted">
+              No rules yet. A rule makes something happen — “when someone uses my gem, strike
+              lightning!”
+            </p>
+          </div>
+        )}
+
+        {rules.length > 0 && (
+          <ul className="mod-list grid-auto">
+            {rules.map((rule) => {
+              const problem = ruleProblems.get(rule.id);
+              return (
+                <li key={rule.id} className="mod-card">
+                  <button
+                    className="mod-card__open"
+                    aria-label={`Edit ${rule.name || 'this rule'}`}
+                    onClick={() => onEditRule(rule)}
+                  >
+                    <span className="mod-card__glyph" aria-hidden>
+                      {triggerSpec(rule.trigger).emoji}
+                      {actionSpec(rule.action).emoji}
+                    </span>
+                    <span className="mod-card__name">{rule.name || 'Unnamed rule'}</span>
+                    <span className="tiny muted">
+                      {problem ? `⚠️ ${problem}` : actionSpec(rule.action).label}
+                    </span>
+                  </button>
+                  {confirmDelete === rule.id ? (
+                    <div className="mod-card__confirm">
+                      <button
+                        className="btn btn--danger btn--icon"
+                        aria-label={`Really delete ${rule.name || 'this rule'}`}
+                        onClick={() => {
+                          onDeleteRule(rule);
+                          setConfirmDelete(null);
+                        }}
+                      >
+                        ✓
+                      </button>
+                      <button
+                        className="btn btn--ghost btn--icon"
+                        aria-label="Keep it"
+                        onClick={() => setConfirmDelete(null)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="btn btn--danger btn--icon mod-card__delete"
+                      aria-label={`Delete ${rule.name || 'this rule'}`}
+                      onClick={() => setConfirmDelete(rule.id)}
+                    >
+                      🗑️
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
       <div className="card export-bar">
         <div className="stack">
           <h2>Ready to play?</h2>
@@ -292,6 +388,12 @@ export function EditorScreen({
             <p className="warn tiny">
               ⚠️ {emptyTextures.length === 1 ? 'One thing has' : `${emptyTextures.length} things have`} a blank
               picture. They’ll be invisible in the game!
+            </p>
+          )}
+          {ruleProblems.size > 0 && (
+            <p className="warn tiny">
+              ⚠️ {ruleProblems.size === 1 ? 'One rule isn’t' : `${ruleProblems.size} rules aren’t`} finished
+              yet, so {ruleProblems.size === 1 ? 'it' : 'they'} won’t be in your mod.
             </p>
           )}
         </div>

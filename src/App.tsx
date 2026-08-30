@@ -6,12 +6,13 @@ import { PixelEditor } from './components/PixelEditor/PixelEditor';
 import { ItemScreen } from './screens/ItemScreen';
 import { BlockScreen } from './screens/BlockScreen';
 import { MobScreen } from './screens/MobScreen';
+import { RuleScreen } from './screens/RuleScreen';
 import { ExportScreen } from './screens/ExportScreen';
 import { deleteProject, listProjects, saveProject } from './storage/db';
 import { useAutosave } from './storage/useAutosave';
-import { createProject, createItem, createBlock, createMob, bumpVersion } from './bedrock/project';
+import { createProject, createItem, createBlock, createMob, createRule, bumpVersion } from './bedrock/project';
 import { exportProject } from './bedrock/package';
-import type { ModBlock, ModItem, ModMob, ModProject } from './bedrock/types';
+import type { ModBlock, ModItem, ModMob, ModProject, ModRule } from './bedrock/types';
 
 type Screen =
   | { name: 'home' }
@@ -21,6 +22,7 @@ type Screen =
   | { name: 'item'; itemId: string }
   | { name: 'block'; blockId: string }
   | { name: 'mob'; mobId: string }
+  | { name: 'rule'; ruleId: string }
   | { name: 'exported'; fileName: string };
 
 export default function App() {
@@ -40,6 +42,9 @@ export default function App() {
 
   const editingMob =
     screen.name === 'mob' ? ((project?.mobs ?? []).find((m) => m.id === screen.mobId) ?? null) : null;
+
+  const editingRule =
+    screen.name === 'rule' ? ((project?.rules ?? []).find((r) => r.id === screen.ruleId) ?? null) : null;
 
   const refresh = useCallback(async () => {
     setProjects(await listProjects());
@@ -166,6 +171,29 @@ export default function App() {
     [update],
   );
 
+  const handleAddRule = useCallback(() => {
+    const rule = createRule();
+    update((draft) => ({ ...draft, rules: [...(draft.rules ?? []), rule] }));
+    setScreen({ name: 'rule', ruleId: rule.id });
+  }, [update]);
+
+  const handleRuleChange = useCallback(
+    (next: ModRule) => {
+      update((draft) => ({
+        ...draft,
+        rules: (draft.rules ?? []).map((r) => (r.id === next.id ? next : r)),
+      }));
+    },
+    [update],
+  );
+
+  const handleDeleteRule = useCallback(
+    (rule: ModRule) => {
+      update((draft) => ({ ...draft, rules: (draft.rules ?? []).filter((r) => r.id !== rule.id) }));
+    },
+    [update],
+  );
+
   const handleDeleteItem = useCallback(
     (item: ModItem) => {
       update((draft) => ({ ...draft, items: draft.items.filter((i) => i.id !== item.id) }));
@@ -241,6 +269,17 @@ export default function App() {
           />
         )}
 
+        {screen.name === 'rule' && project && editingRule && (
+          <RuleScreen
+            rule={editingRule}
+            items={project.items}
+            blocks={project.blocks ?? []}
+            mobs={project.mobs ?? []}
+            onChange={handleRuleChange}
+            onDone={() => setScreen({ name: 'editor' })}
+          />
+        )}
+
         {screen.name === 'icon' && project && (
           <div className="card">
             <PixelEditor
@@ -273,6 +312,9 @@ export default function App() {
             onAddMob={handleAddMob}
             onEditMob={(mob) => setScreen({ name: 'mob', mobId: mob.id })}
             onDeleteMob={handleDeleteMob}
+            onAddRule={handleAddRule}
+            onEditRule={(rule) => setScreen({ name: 'rule', ruleId: rule.id })}
+            onDeleteRule={handleDeleteRule}
             onDeleteItem={handleDeleteItem}
             onEditIcon={() => setScreen({ name: 'icon' })}
           />

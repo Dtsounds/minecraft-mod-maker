@@ -12,7 +12,7 @@ leaves the browser; projects autosave to IndexedDB.
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 122 tests
+npm test           # 230 tests
 npm run build
 npm run sample     # writes a real .mcaddon to sample-output/
 npm run install-local  # installs straight into the live Minecraft world
@@ -29,6 +29,7 @@ npm run install-local  # installs straight into the live Minecraft world
 | 4 — Export onboarding + My Mods | ✅ verified on-device |
 | 5 — Block creator | ✅ verified on-device |
 | 6 — Mob creator | ✅ verified on-device |
+| 7 — Rules (Script API) | 🔬 built, 230 tests, awaiting on-device check |
 
 ## Before changing Bedrock JSON
 
@@ -54,6 +55,9 @@ src/bedrock/
   item.ts         item JSON per preset
   recipe.ts       shaped crafting recipes
   pack.ts         assembles the whole file tree (pure)
+  rulePresets.ts  the closed trigger/action vocabulary
+  rules.ts        rules -> a validated data table (never code)
+  runtime.ts      the fixed scripts/main.js interpreter
   package.ts      JSZip + browser download
 ```
 

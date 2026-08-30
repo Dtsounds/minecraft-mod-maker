@@ -18,11 +18,11 @@
  *   npx tsx scripts/install-local.mts
  */
 import { mkdir, rm, writeFile, readFile, readdir, stat } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
 import { existsSync } from 'node:fs';
 import { buildAddon } from '../src/bedrock/pack';
-import { createProject, createItem, createBlock, createMob } from '../src/bedrock/project';
+import { createProject, createItem, createBlock, createMob, createRule } from '../src/bedrock/project';
 import { blankTexture } from '../src/bedrock/texture';
 import { mobRig } from '../src/bedrock/mobGeometry';
 import { starterMobTexture } from '../src/components/mobStarter';
@@ -118,6 +118,7 @@ project.uuids = {
   bpModule: 'c8f5e3b2-4d66-4a29-8b31-82e1f7d5b902',
   rpHeader: 'd9a6f4c3-5e77-4b3a-9c42-93f2a8e6ca13',
   rpModule: 'eab7a5d4-6f88-4c4b-ad53-a4a3b9f7db24',
+  bpScript: 'fbc8b6e5-7a99-4d5c-be64-b5b4cae8ec35',
 };
 
 const gem: ModItem = { ...createItem('plain'), name: 'Test Gem', texture: solidTexture('#ff00ff'), stackSize: 64 };
@@ -268,6 +269,68 @@ const birdy: ModMob = {
 
 project.mobs = [critter, brute, birdy];
 
+// --- Rules (Milestone 7) -----------------------------------------------------
+
+/**
+ * Five rules chosen to cover every distinct path through the runtime in ONE
+ * world visit, rather than one guess per round:
+ *
+ *  - all three subject kinds: item, block, creature
+ *  - a player-targeted action (addEffect) and dimension-targeted ones
+ *    (spawnEntity, createExplosion, spawnItem)
+ *  - ItemStack construction, which is the only `new` in the runtime
+ *
+ * The world-load banner is the decisive one. If it appears, the script module
+ * resolved and is running, so a misbehaving rule is a rule bug. If it does not,
+ * the manifest or the @minecraft/server version is wrong and no rule was ever
+ * going to fire. Those two look identical from inside the game otherwise.
+ */
+project.rules = [
+  {
+    ...createRule(),
+    name: 'Gem grants speed',
+    trigger: 'useItem',
+    subjectId: gem.id,
+    action: 'effect',
+    effect: 'speed',
+    strength: 3,
+    seconds: 20,
+  },
+  {
+    ...createRule(),
+    name: 'Sword calls lightning',
+    trigger: 'useItem',
+    subjectId: sword.id,
+    action: 'lightning',
+  },
+  {
+    ...createRule(),
+    name: 'Stone drops diamonds',
+    trigger: 'breakBlock',
+    subjectId: stone.id,
+    action: 'giveItem',
+    giveTarget: { kind: 'vanilla', id: 'minecraft:diamond' },
+    giveCount: 3,
+  },
+  {
+    ...createRule(),
+    name: 'Glass summons chickens',
+    trigger: 'placeBlock',
+    subjectId: glass.id,
+    action: 'summon',
+    summonTarget: { kind: 'vanilla', id: 'minecraft:chicken' },
+    summonCount: 3,
+  },
+  {
+    ...createRule(),
+    name: 'Critter complains',
+    trigger: 'hitMob',
+    subjectId: critter.id,
+    action: 'message',
+    message: 'Ouch! Stop that!',
+  },
+];
+
 // --- World injection ---------------------------------------------------------
 
 /**
@@ -349,7 +412,8 @@ if (!live) {
 }
 console.log(`\nInstalling into the most recently used one:\n  ${live}\n`);
 
-const addon = buildAddon(project);
+// banner: makes the one on-device check decisive (see the rules block above).
+const addon = buildAddon(project, { banner: 'LocalTest' });
 await install(live, addon);
 
 // Inject into the most recently played world and activate it there. The dev
@@ -408,5 +472,15 @@ console.log('  /summon localtest:test_critter  -> PURPLE 4-legged, tame with whe
 console.log('  /summon localtest:test_brute    -> GREEN 2-legged, chases and hits you');
 console.log('  /summon localtest:test_birdy    -> YELLOW bird, big, fast, runs away, rideable');
 console.log('  (spawn eggs are in the creative menu too)');
+console.log('');
+console.log('  RULES (Milestone 7) — check these IN ORDER:');
+console.log('   0. On world load, chat should say "[LocalTest] 5 rule(s) loaded".');
+console.log('      If that line is MISSING, stop: the script module did not load at');
+console.log('      all and none of the rules below can possibly work.');
+console.log('   1. Hold test_gem, use it     -> you get SPEED for 20s');
+console.log('   2. Hold test_sword, use it   -> LIGHTNING strikes you');
+console.log('   3. Break a test_stone block  -> 3 DIAMONDS pop out');
+console.log('   4. Place a test_glass block  -> 3 CHICKENS appear');
+console.log('   5. Hit a test_critter        -> chat says "Ouch! Stop that!"');
 console.log('\nRe-running overwrites the same folders in place, so there is never a');
 console.log('duplicate and never anything to re-activate.');

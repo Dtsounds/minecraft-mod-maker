@@ -110,6 +110,46 @@ export const CLIENT_ENTITY_FORMAT_VERSION = '1.10.0' as const;
 export const DEFAULT_PACK_VERSION: readonly [number, number, number] = [1, 0, 0];
 
 /**
+ * The `@minecraft/server` Script API version our generated scripts/main.js
+ * declares in the behavior pack manifest (Phase 4).
+ *
+ * This is the single most dangerous number in this file. A script-module
+ * dependency naming a version the engine does not provide makes the whole
+ * pack fail to load — not the script, the *pack*.
+ *
+ * Why a low floor rather than the newest:
+ *
+ * Within a major version Minecraft resolves this like npm's `^`. The
+ * versioning reference states that a dependency on `1.3.0` "may actually have
+ * that dependency fulfilled with `1.8.0` ... and those script modules should
+ * continue to function as expected". So naming an older minor is safe, while
+ * naming a newer one than the client has is fatal. Microsoft's page advises
+ * depending on "the latest and highest version number" — that advice is aimed
+ * at marketplace content chasing new APIs, and taking it here would trade a
+ * guaranteed-safe floor for a hard failure on any client even slightly behind.
+ * We use only long-stable calls, so the floor costs us nothing.
+ *
+ * Why major 2 rather than 1: npm's `latest` dist-tag for @minecraft/server is
+ * a plain `2.9.0` with no `-beta` suffix, and the `rc`/`beta` tags embed the
+ * game build they track (`2.10.0-rc.1.26.50-preview.27`), which pins stable
+ * 2.9.0 to the current 1.26.4x retail line. The WorldAfterEvents reference,
+ * stable view, updated 2026-08-18, lists `worldLoad` — the event *renamed* by
+ * V2 — outside any experimental fence, which is what confirms the V2 surface
+ * is the live stable one. Only `-beta` modules need the "Beta APIs"
+ * experiment, and needing one would be disqualifying: a kid must never have
+ * to find a settings toggle to make their mod work.
+ *
+ * Sources:
+ *  - https://learn.microsoft.com/en-us/minecraft/creator/documents/scripting/versioning
+ *  - https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server/worldafterevents
+ *  - https://registry.npmjs.org/-/package/@minecraft/server/dist-tags
+ */
+export const SCRIPT_MODULE_VERSION = '2.0.0' as const;
+
+/** Where the behavior pack's script entry point lives. */
+export const SCRIPT_ENTRY = 'scripts/main.js' as const;
+
+/**
  * Note: textures/item_texture.json and textures/terrain_texture.json have
  * "(no versioning concept)" per the platform-version guidance page — they
  * carry no format_version field at all. Do not add one.

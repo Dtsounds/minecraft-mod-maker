@@ -62,10 +62,26 @@ pack.ts         assembles the whole file tree (pure)
 package.ts      JSZip + browser download
 ```
 
-Presets (`presets.ts`, `blockPresets.ts`, `mobPresets.ts`) declare their own
-sliders with min/max. The UI draws from them **and** the generator clamps
-against them, so the two cannot drift. Add new content types by adding a
-preset, not by touching packaging.
+Presets (`presets.ts`, `blockPresets.ts`, `mobPresets.ts`, `rulePresets.ts`)
+declare their own sliders with min/max. The UI draws from them **and** the
+generator clamps against them, so the two cannot drift. Add new content types
+by adding a preset, not by touching packaging.
+
+### Rules ship data, never generated code
+
+`runtime.ts` holds `scripts/main.js` as a **constant** — byte-identical in
+every export, so it is reviewed and tested once. A kid's rules are compiled by
+`rules.ts` into a JSON table spliced into the top of it, and the runtime
+interprets that. Nothing a kid can type produces JavaScript.
+
+Keep it that way. If a new action needs bespoke emitted code, add a branch to
+the fixed runtime and a field to the data instead — a Bedrock script error is
+*silent* except in the content log, which is the failure mode that has cost
+this project the most.
+
+A pack with no runnable rules declares no script module at all, so pre-Phase-4
+mods still generate byte-identical output and cannot fail on a dependency they
+do not use.
 
 ## Non-negotiables
 
@@ -78,7 +94,7 @@ preset, not by touching packaging.
 
 ## Testing
 
-`npm test` — 204 tests. `npm run build`, `npx tsc -b --noEmit`.
+`npm test` — 230 tests. `npm run build`, `npx tsc -b --noEmit`.
 
 The suite verifies our bytes against our own understanding, which is *not* the
 same as the game agreeing: it passed cleanly through four real on-device bugs.

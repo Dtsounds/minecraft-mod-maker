@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildBehaviorManifest, buildResourceManifest } from '../src/bedrock/manifest';
+import { buildBehaviorManifest, buildResourceManifest, isPackDependency } from '../src/bedrock/manifest';
 import { createProject } from '../src/bedrock/project';
 import { isUuid } from '../src/bedrock/ids';
 import { MANIFEST_FORMAT_VERSION, MIN_ENGINE_VERSION } from '../src/bedrock/versions';
@@ -48,8 +48,9 @@ describe('manifest generator', () => {
     const bp = buildBehaviorManifest(project);
     const rp = buildResourceManifest(project);
     // dependencies is a TOP-LEVEL section, not header.dependencies.
-    expect(bp.dependencies?.[0]?.uuid).toBe(rp.header.uuid);
-    expect(bp.dependencies?.[0]?.version).toEqual(rp.header.version);
+    const packDeps = (bp.dependencies ?? []).filter(isPackDependency);
+    expect(packDeps[0]?.uuid).toBe(rp.header.uuid);
+    expect(packDeps[0]?.version).toEqual(rp.header.version);
     expect((bp.header as unknown as Record<string, unknown>).dependencies).toBeUndefined();
   });
 
@@ -64,8 +65,10 @@ describe('manifest generator', () => {
   it('never produces a circular dependency between the two packs', () => {
     const bp = buildBehaviorManifest(project);
     const rp = buildResourceManifest(project);
-    const bpPointsAtRp = bp.dependencies?.some((d) => d.uuid === rp.header.uuid) ?? false;
-    const rpPointsAtBp = rp.dependencies?.some((d) => d.uuid === bp.header.uuid) ?? false;
+    const bpPointsAtRp =
+      bp.dependencies?.some((d) => isPackDependency(d) && d.uuid === rp.header.uuid) ?? false;
+    const rpPointsAtBp =
+      rp.dependencies?.some((d) => isPackDependency(d) && d.uuid === bp.header.uuid) ?? false;
     expect(bpPointsAtRp).toBe(true);
     expect(rpPointsAtBp).toBe(false);
   });

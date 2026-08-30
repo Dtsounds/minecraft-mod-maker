@@ -66,6 +66,7 @@ project.uuids = {
   bpModule: '24b02bcc-e1bf-46a4-8381-7a136fd78ce7',
   rpHeader: '313f5639-a317-4b4d-abe2-660d2bdb0617',
   rpModule: '0515c6dd-cb37-41b2-b431-4b6b09164489',
+  bpScript: '7d2f1a48-9c30-4e6b-8f52-1c9a0b3d7e64',
 };
 
 const gem: ModItem = {

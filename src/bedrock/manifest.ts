@@ -1,6 +1,8 @@
 import {
   MANIFEST_FORMAT_VERSION,
   MIN_ENGINE_VERSION,
+  SCRIPT_ENTRY,
+  SCRIPT_MODULE_VERSION,
 } from './versions';
 import type { ModProject } from './types';
 
@@ -16,14 +18,27 @@ export interface ManifestHeader {
 
 export interface ManifestModule {
   description: string;
-  type: 'data' | 'resources';
+  type: 'data' | 'resources' | 'script';
   uuid: string;
   version: Version3;
+  /** Script modules only. */
+  language?: 'javascript';
+  entry?: string;
 }
 
-export interface ManifestDependency {
-  uuid: string;
-  version: Version3;
+/**
+ * Two genuinely different shapes share the one `dependencies` array:
+ * a pack dependency is a `uuid` plus a `[x,y,z]` array, while a script-module
+ * dependency is a `module_name` plus a *string* semver. Mixing them up is
+ * silent — the pack simply refuses to load.
+ */
+export type PackDependency = { uuid: string; version: Version3 };
+export type ScriptDependency = { module_name: string; version: string };
+export type ManifestDependency = PackDependency | ScriptDependency;
+
+/** Narrow to the pack-to-pack half of the `dependencies` array. */
+export function isPackDependency(dep: ManifestDependency): dep is PackDependency {
+  return 'uuid' in dep;
 }
 
 export interface Manifest {
@@ -54,9 +69,52 @@ const GENERATED_WITH = { bedrock_mod_maker: ['1.0.0'] };
  * resource pack's *header* uuid, with a matching version, so Minecraft
  * activates the two packs together.
  */
-export function buildBehaviorManifest(project: ModProject): Manifest {
+export interface BehaviorManifestOptions {
+  /**
+   * Whether this mod ships rules. A pack with no rules must not declare a
+   * script module: it would add a dependency that can fail to resolve, in
+   * exchange for running an empty file. Keeping it conditional means every
+   * mod built before Phase 4 generates byte-identical output.
+   */
+  scripts?: boolean;
+}
+
+export function buildBehaviorManifest(
+  project: ModProject,
+  options: BehaviorManifestOptions = {},
+): Manifest {
   const version = [...project.version] as Version3;
   const minEngine = [...MIN_ENGINE_VERSION] as Version3;
+  const modules: ManifestModule[] = [
+    {
+      description: packDescription(project),
+      type: 'data',
+      uuid: project.uuids.bpModule,
+      version,
+    },
+  ];
+  const dependencies: ManifestDependency[] = [
+    {
+      uuid: project.uuids.rpHeader,
+      version,
+    },
+  ];
+
+  if (options.scripts) {
+    modules.push({
+      description: packDescription(project),
+      type: 'script',
+      language: 'javascript',
+      entry: SCRIPT_ENTRY,
+      uuid: project.uuids.bpScript,
+      version,
+    });
+    dependencies.push({
+      module_name: '@minecraft/server',
+      version: SCRIPT_MODULE_VERSION,
+    });
+  }
+
   return {
     format_version: MANIFEST_FORMAT_VERSION,
     header: {
@@ -70,20 +128,8 @@ export function buildBehaviorManifest(project: ModProject): Manifest {
       version,
       min_engine_version: minEngine,
     },
-    modules: [
-      {
-        description: packDescription(project),
-        type: 'data',
-        uuid: project.uuids.bpModule,
-        version,
-      },
-    ],
-    dependencies: [
-      {
-        uuid: project.uuids.rpHeader,
-        version,
-      },
-    ],
+    modules,
+    dependencies,
     metadata: {
       generated_with: GENERATED_WITH,
       product_type: 'addon',
