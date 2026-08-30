@@ -17,7 +17,7 @@
  *
  *   npx tsx scripts/install-local.mts
  */
-import { mkdir, rm, writeFile, readdir, stat } from 'node:fs/promises';
+import { mkdir, rm, writeFile, readFile, readdir, stat } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { existsSync } from 'node:fs';
@@ -140,6 +140,70 @@ const snack: ModItem = {
 };
 project.items = [gem, sword, snack];
 
+// --- World injection ---------------------------------------------------------
+
+/**
+ * Install into a specific world and activate it there.
+ *
+ * The development_* folders turned out not to be scanned by the standalone
+ * launcher build, but worlds carry their own copies of every pack they use
+ * (that is how the previously imported packs were being loaded). Writing
+ * there and listing the pack in world_{behavior,resource}_packs.json activates
+ * it with no in-game steps at all.
+ *
+ * Only the pack folders and the two activation manifests are touched; the
+ * world database itself is never opened. Both manifests are backed up first.
+ */
+async function injectIntoWorld(worldDir: string, addon: BuiltAddon, uuids: { bp: string; rp: string }) {
+  const byTop = new Map<string, typeof addon.files>();
+  for (const file of addon.files) {
+    const top = file.path.split('/')[0] as string;
+    if (!byTop.has(top)) byTop.set(top, []);
+    (byTop.get(top) as typeof addon.files).push(file);
+  }
+
+  for (const [top, files] of byTop) {
+    const isBehavior = top.endsWith('_BP');
+    const dest = join(worldDir, isBehavior ? 'behavior_packs' : 'resource_packs', top);
+    await rm(dest, { recursive: true, force: true });
+    await mkdir(dest, { recursive: true });
+    for (const file of files) {
+      const target = join(dest, file.path.slice(top.length + 1));
+      await mkdir(dirname(target), { recursive: true });
+      if (file.kind === 'text') await writeFile(target, file.content, 'utf8');
+      else await writeFile(target, file.content);
+    }
+    console.log(`  world pack -> ${dest}`);
+  }
+
+  const version = [1, 0, 0];
+  for (const [name, id] of [
+    ['world_behavior_packs.json', uuids.bp],
+    ['world_resource_packs.json', uuids.rp],
+  ] as const) {
+    const path = join(worldDir, name);
+    if (existsSync(path)) {
+      const backup = `${path}.bak`;
+      if (!existsSync(backup)) await writeFile(backup, await readFile(path));
+    }
+    await writeFile(path, `${JSON.stringify([{ pack_id: id, version }], null, 2)}\n`, 'utf8');
+    console.log(`  activated in ${name}`);
+  }
+}
+
+/** Delete previously injected test packs so nothing stale can win. */
+async function cleanWorldPacks(worldDir: string, keep: string[]) {
+  for (const sub of ['behavior_packs', 'resource_packs']) {
+    const dir = join(worldDir, sub);
+    if (!existsSync(dir)) continue;
+    for (const entry of await readdir(dir)) {
+      if (keep.includes(entry)) continue;
+      await rm(join(dir, entry), { recursive: true, force: true });
+      console.log(`  removed stale ${sub}/${entry}`);
+    }
+  }
+}
+
 // --- Run ---------------------------------------------------------------------
 
 const roots = await findMojangRoots();
@@ -157,13 +221,49 @@ if (!live) {
 }
 console.log(`\nInstalling into the most recently used one:\n  ${live}\n`);
 
-await install(live, buildAddon(project));
+const addon = buildAddon(project);
+await install(live, addon);
 
-console.log('\nDone. In Minecraft:');
-console.log('  1. Fully quit and relaunch (dev folders are scanned at startup).');
-console.log('  2. Open or create a world -> Settings -> Add-Ons.');
-console.log('  3. Activate "LocalTest" under Behavior Packs AND "LocalTest Art" under Resource Packs.');
-console.log('  4. /give @s localtest:test_gem   -> should be a solid MAGENTA square');
-console.log('\nRe-running this script overwrites the same folders, so no duplicates and');
-console.log('no re-activation: just reload the world.');
-console.log(`\nGenerated identifiers: ${project.items.map((i) => `localtest:${i.name.toLowerCase().replace(/\W+/g, '_')}`).join(', ')}`);
+// Inject into the most recently played world and activate it there. The dev
+// folders are not scanned by every Bedrock build (this machine's standalone
+// launcher ignores them), but world-local packs are always loaded, so this is
+// the reliable path.
+const worldsDir = join(live, 'minecraftWorlds');
+let newest: { dir: string; mtime: number; name: string } | null = null;
+for (const entry of await readdir(worldsDir)) {
+  const dir = join(worldsDir, entry);
+  try {
+    const s = await stat(dir);
+    if (!s.isDirectory()) continue;
+    if (!newest || s.mtimeMs > newest.mtime) {
+      let name = entry;
+      try {
+        name = (await readFile(join(dir, 'levelname.txt'), 'utf8')).trim();
+      } catch {
+        /* fall back to the folder id */
+      }
+      newest = { dir, mtime: s.mtimeMs, name };
+    }
+  } catch {
+    /* skip unreadable world */
+  }
+}
+
+if (newest) {
+  console.log(`\nInjecting into world "${newest.name}"\n  ${newest.dir}`);
+  await cleanWorldPacks(newest.dir, ['LocalTest_BP', 'LocalTest_RP']);
+  await injectIntoWorld(newest.dir, addon, {
+    bp: project.uuids.bpHeader,
+    rp: project.uuids.rpHeader,
+  });
+} else {
+  console.log('\nNo world found to inject into.');
+}
+
+console.log('\nDone. Launch Minecraft and open that world — the pack is already');
+console.log('activated, so there is nothing to import or switch on.');
+console.log('\n  /give @s localtest:test_gem     -> solid MAGENTA square');
+console.log('  /give @s localtest:test_sword   -> solid GREEN square');
+console.log('  /give @s localtest:test_snack   -> solid CYAN square (edible)');
+console.log('\nRe-running overwrites the same folders in place, so there is never a');
+console.log('duplicate and never anything to re-activate.');
