@@ -17,6 +17,7 @@ npm run build
 npm run sample     # writes a real .mcaddon to sample-output/
 npm run install-local  # installs straight into the live Minecraft world
 npm run check-log      # what Minecraft itself said about the packs, last launch
+npm run serve-test     # verify against a real dedicated server, no player needed
 ```
 
 ## What's built
@@ -30,7 +31,7 @@ npm run check-log      # what Minecraft itself said about the packs, last launch
 | 4 — Export onboarding + My Mods | ✅ verified on-device |
 | 5 — Block creator | ✅ verified on-device |
 | 6 — Mob creator | ✅ verified on-device |
-| 7 — Rules (Script API) | ✅ script module verified loading on-device |
+| 7 — Rules (Script API) | ✅ all 8 actions verified on a real server |
 
 ## Before changing Bedrock JSON
 

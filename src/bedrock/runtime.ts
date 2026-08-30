@@ -251,15 +251,9 @@ function jsLiteral(value: unknown): string {
  * to capture console output, that fact is itself visible.
  */
 const SELF_TEST = String.raw`
-system.runTimeout(function () {
-  var players = world.getAllPlayers();
-  if (players.length === 0) {
-    console.warn("[SELFTEST] no player yet; skipping");
-    return;
-  }
-  var player = players[0];
-  var dim = player.dimension;
-  var at = pointOf(player);
+var SELFTEST_TRIES = 0;
+
+function selfTest() {
   var results = [];
 
   function attempt(name, fn) {
@@ -271,11 +265,89 @@ system.runTimeout(function () {
     }
   }
 
+  function report(line) {
+    console.warn("[SELFTEST] " + line);
+    try {
+      world.sendMessage("[SELFTEST] " + line);
+    } catch (err) {
+      /* no players to tell; the console line is the one that matters */
+    }
+  }
+
+  // Deliberately player-OPTIONAL. A dedicated server runs with nobody
+  // connected, and that is the whole point of running one: no human has to be
+  // in the world for these to be checked.
+  var players = world.getAllPlayers();
+  var player = players.length > 0 ? players[0] : null;
+
+  var dim;
+  try {
+    dim = player ? player.dimension : world.getDimension("overworld");
+  } catch (err) {
+    report("FAIL setup :: no dimension :: " + err);
+    return;
+  }
+
+  /**
+   * A spot in a chunk that is actually loaded and ticking.
+   *
+   * Everything that touches the world throws LocationInUnloadedChunkError
+   * otherwise, and on a freshly created server world the spawn chunks are
+   * still generating well after the script starts. getTopmostBlock answers
+   * with the build ceiling for a column that is not really there, so a
+   * suspiciously high hit is treated as "not ready" rather than as ground.
+   */
+  function groundAt(x, z) {
+    try {
+      var top = dim.getTopmostBlock({ x: x, z: z });
+      if (!top || top.y >= 300) return null;
+      return { x: x, y: top.y + 1, z: z };
+    } catch (err) {
+      return null;
+    }
+  }
+
+  var at = player ? pointOf(player) : null;
+  if (!at) {
+    var spawn = null;
+    try {
+      spawn = world.getDefaultSpawnLocation();
+    } catch (err) {
+      /* not available yet */
+    }
+    if (spawn && Math.abs(spawn.y) < 1000) at = groundAt(spawn.x, spawn.z);
+    if (!at) at = groundAt(0, 0);
+  }
+
+  if (!at) {
+    // Not an failure — just too early. Come back in a second.
+    if (SELFTEST_TRIES < 60) {
+      SELFTEST_TRIES++;
+      system.runTimeout(selfTest, 20);
+      return;
+    }
+    report("FAIL setup :: no loaded chunk after 60 tries");
+    return;
+  }
+
+  // addEffect and setOnFire need an Entity. A player is one; with nobody
+  // connected, a throwaway chicken is too — and it exercises spawnEntity as a
+  // side effect, so a failure here localises itself.
+  var victim = player;
+  if (!victim) {
+    try {
+      victim = dim.spawnEntity("minecraft:chicken", at);
+    } catch (err) {
+      report("FAIL setup :: could not spawn a test entity :: " + err);
+    }
+  }
+
   attempt("effect", function () {
-    player.addEffect("speed", 100, { amplifier: 0, showParticles: true });
+    if (!victim) throw new Error("no entity to apply an effect to");
+    victim.addEffect("speed", 100, { amplifier: 0, showParticles: true });
   });
   attempt("message", function () {
-    player.sendMessage("selftest");
+    world.sendMessage("selftest");
   });
   attempt("lightning", function () {
     dim.spawnEntity("minecraft:lightning_bolt", at);
@@ -293,14 +365,16 @@ system.runTimeout(function () {
     dim.playSound("random.levelup", at);
   });
   attempt("setOnFire", function () {
-    player.setOnFire(1, true);
+    if (!victim) throw new Error("no entity to set alight");
+    victim.setOnFire(1, true);
   });
 
-  for (var i = 0; i < results.length; i++) {
-    console.warn("[SELFTEST] " + results[i]);
-    player.sendMessage("[SELFTEST] " + results[i]);
-  }
-}, 100);
+  report("mode " + (player ? "client (player present)" : "headless (no player)"));
+  for (var i = 0; i < results.length; i++) report(results[i]);
+  report("DONE " + results.length + " actions");
+}
+
+system.runTimeout(selfTest, 100);
 `;
 
 export interface RuntimeOptions {

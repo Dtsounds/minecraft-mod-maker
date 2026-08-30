@@ -38,6 +38,38 @@ Minecraft's live data on this machine is the **standalone launcher** path:
 shell access — read `minecraftWorlds/<world>/world_behavior_packs.json` to see
 what is *actually* loaded rather than asking.
 
+## Verify headless first — no human needed
+
+```bash
+npm run serve-test
+```
+
+Runs the generated packs against **Mojang's Bedrock Dedicated Server**, which
+is the same engine as the retail client but a console application: same pack
+loading, same Script API, script `console.*` straight to stdout. It installs
+the test mod, boots the server, waits for the runtime's self-test to exercise
+every rule action, stops the server, and reports.
+
+The server lives at `~/bedrock-server` (override with `BDS_HOME`) — outside the
+repo, since it is ~100MB of Mojang's binaries. Get the current URL from
+`https://net-secondary.web.minecraft-services.net/api/v1.0/download/links`
+and match the retail client's version.
+
+Two non-obvious things this needed, both of which look like a broken script:
+
+- **`content-log-console-output-enabled=true`** in `server.properties`.
+  Off by default, and without it the server silently swallows script output
+  *and* every pack-load complaint — the only two things worth running it for.
+- **A ticking area.** A server with nobody connected ticks **no chunks**, so
+  every world-touching API call fails with `LocationInUnloadedChunkError`.
+  `serve-test` issues `tickingarea add circle 0 0 0 4` once the server is up.
+  That is the trick that makes player-free verification work at all.
+
+What this covers: packs load, the script module resolves, and every rule
+action's API call really works. What it cannot cover: a trigger firing from
+real player input, and whether anything *looks* right. Those two are the only
+things left that need Dave.
+
 ## Read the content log before asking Dave anything
 
 ```bash
