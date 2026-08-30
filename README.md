@@ -28,7 +28,7 @@ npm run install-local  # installs straight into the live Minecraft world
 | 3 — Item creator (7 presets + 3×3 recipe builder) | ✅ verified on-device |
 | 4 — Export onboarding + My Mods | ✅ verified on-device |
 | 5 — Block creator | ✅ verified on-device |
-| 6 — Mob creator | ✅ built, awaiting on-device check |
+| 6 — Mob creator | ✅ verified on-device |
 
 ## Architecture
 
@@ -152,8 +152,14 @@ in-memory objects.
 ## On-device verification
 
 **Verified working on Minecraft Bedrock v26.45 (internally 1.26.45) on
-2026-08-30.** Custom items appear, render their textures, are edible where
-applicable, and craft from their recipes.
+2026-08-30.** All three content types confirmed in game:
+
+- **Items** appear, render their textures, are edible where applicable, and
+  craft from their recipes.
+- **Blocks** place and break, respect their hardness, glow, render see-through,
+  show per-face textures, gate drops behind the required tool, and smelt.
+- **Mobs** spawn, render their painted skins, walk with animated legs, and
+  honour their mood and tame/breed/ride toggles.
 
 Getting there took four real bugs and two false trails:
 
