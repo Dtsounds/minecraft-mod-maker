@@ -1,8 +1,9 @@
 import { RECIPE_FORMAT_VERSION } from './versions';
 import { clampInt, toIdentifierSegment } from './ids';
 import { isKnownVanillaId } from './vanillaItems';
-import type { ModItem, RecipeSlot } from './types';
+import type { ModBlock, ModItem, RecipeSlot } from './types';
 import { itemShortName } from './item';
+import { blockShortName } from './block';
 
 export interface ShapedRecipeJson {
   format_version: string;
@@ -112,6 +113,100 @@ export function buildRecipeJson(namespace: string, item: ModItem): ShapedRecipeJ
         item: identifier,
         count: clampInt(item.recipe.count ?? 1, 1, 64),
       },
+    },
+  };
+}
+
+export interface FurnaceRecipeJson {
+  format_version: string;
+  'minecraft:recipe_furnace': {
+    description: { identifier: string };
+    tags: string[];
+    input: string;
+    output: string;
+  };
+}
+
+/**
+ * Shared shaped-recipe builder, so items and blocks cannot diverge.
+ * `resultId` is the fully namespaced identifier the craft produces.
+ */
+function buildShaped(
+  namespace: string,
+  shortName: string,
+  resultId: string,
+  recipe: { enabled: boolean; grid: RecipeSlot[]; count: number } | undefined,
+): ShapedRecipeJson | null {
+  if (!recipe?.enabled) return null;
+
+  const grid = normalizeGrid(recipe.grid);
+  const box = boundingBox(grid);
+  if (!box) return null;
+
+  const ns = toIdentifierSegment(namespace, 'mymod');
+  const charForItem = new Map<string, string>();
+  const key: Record<string, { item: string }> = {};
+  const pattern: string[] = [];
+
+  for (let row = box.minRow; row <= box.maxRow; row++) {
+    let line = '';
+    for (let col = box.minCol; col <= box.maxCol; col++) {
+      const slot = grid[row * 3 + col];
+      if (!slot) {
+        line += ' ';
+        continue;
+      }
+      let ch = charForItem.get(slot);
+      if (!ch) {
+        ch = KEY_CHARS[charForItem.size] as string;
+        charForItem.set(slot, ch);
+        key[ch] = { item: slot };
+      }
+      line += ch;
+    }
+    pattern.push(line);
+  }
+
+  return {
+    format_version: RECIPE_FORMAT_VERSION,
+    'minecraft:recipe_shaped': {
+      description: { identifier: `${ns}:craft_${shortName}` },
+      tags: ['crafting_table'],
+      pattern,
+      key,
+      result: { item: resultId, count: clampInt(recipe.count ?? 1, 1, 64) },
+    },
+  };
+}
+
+/** Shaped crafting recipe that produces a block. */
+export function buildBlockRecipeJson(namespace: string, block: ModBlock): ShapedRecipeJson | null {
+  const ns = toIdentifierSegment(namespace, 'mymod');
+  const shortName = blockShortName(block);
+  return buildShaped(ns, shortName, `${ns}:${shortName}`, block.recipe);
+}
+
+/**
+ * Furnace recipe: smelt a vanilla item into this block.
+ *
+ * The `tags` array lists which heat sources can run it. Furnace only keeps it
+ * simple and predictable for a kid; vanilla ore recipes also list "blast_furnace".
+ */
+export function buildSmeltingRecipeJson(namespace: string, block: ModBlock): FurnaceRecipeJson | null {
+  if (!block.smelting?.enabled) return null;
+  const input = block.smelting.input;
+  if (!isKnownVanillaId(input)) return null;
+
+  const ns = toIdentifierSegment(namespace, 'mymod');
+  const shortName = blockShortName(block);
+
+  return {
+    format_version: RECIPE_FORMAT_VERSION,
+    'minecraft:recipe_furnace': {
+      description: { identifier: `${ns}:smelt_${shortName}` },
+      tags: ['furnace', 'blast_furnace'],
+      input,
+      output: `${ns}:${shortName}`,
     },
   };
 }

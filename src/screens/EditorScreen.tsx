@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ModItem, ModProject } from '../bedrock/types';
+import type { ModBlock, ModItem, ModProject } from '../bedrock/types';
 import { TexturePreview } from '../components/TexturePreview';
 import { ITEM_PRESETS } from '../bedrock/presets';
 import { isTextureEmpty } from '../bedrock/texture';
@@ -14,6 +14,9 @@ interface Props {
   onAddItem: () => void;
   onEditItem: (item: ModItem) => void;
   onDeleteItem: (item: ModItem) => void;
+  onAddBlock: () => void;
+  onEditBlock: (block: ModBlock) => void;
+  onDeleteBlock: (block: ModBlock) => void;
   onEditIcon: () => void;
 }
 
@@ -39,10 +42,18 @@ export function EditorScreen({
   onAddItem,
   onEditItem,
   onDeleteItem,
+  onAddBlock,
+  onEditBlock,
+  onDeleteBlock,
   onEditIcon,
 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const emptyTextures = project.items.filter((i) => isTextureEmpty(i.texture));
+  const blocks = project.blocks ?? [];
+  const emptyTextures = [
+    ...project.items.filter((i) => isTextureEmpty(i.texture)),
+    ...blocks.filter((b) => isTextureEmpty(b.texture)),
+  ];
+  const thingCount = project.items.length + blocks.length;
 
   return (
     <div className="stack">
@@ -133,17 +144,82 @@ export function EditorScreen({
         )}
       </section>
 
+      <section className="stack">
+        <div className="row">
+          <h2>Blocks</h2>
+          <span className="spacer" />
+          <button className="btn btn--sky" onClick={onAddBlock}>
+            ➕ Add a block
+          </button>
+        </div>
+
+        {blocks.length === 0 && (
+          <div className="card card--flat empty">
+            <p className="muted">
+              No blocks yet. Blocks are things you place in the world, like stone or glass.
+            </p>
+          </div>
+        )}
+
+        {blocks.length > 0 && (
+          <ul className="mod-list grid-auto">
+            {blocks.map((block) => (
+              <li key={block.id} className="mod-card">
+                <button
+                  className="mod-card__open"
+                  aria-label={`Edit ${block.name || 'this block'}`}
+                  onClick={() => onEditBlock(block)}
+                >
+                  <TexturePreview texture={block.texture} size={64} label={`${block.name || 'Block'} texture`} />
+                  <span className="mod-card__name">{block.name || 'Unnamed block'}</span>
+                  <span className="tiny muted">🧱 Block</span>
+                </button>
+                {confirmDelete === block.id ? (
+                  <div className="mod-card__confirm">
+                    <button
+                      className="btn btn--danger btn--icon"
+                      aria-label={`Really delete ${block.name || 'this block'}`}
+                      onClick={() => {
+                        onDeleteBlock(block);
+                        setConfirmDelete(null);
+                      }}
+                    >
+                      ✓
+                    </button>
+                    <button
+                      className="btn btn--ghost btn--icon"
+                      aria-label="Keep it"
+                      onClick={() => setConfirmDelete(null)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className="btn btn--danger btn--icon mod-card__delete"
+                    aria-label={`Delete ${block.name || 'this block'}`}
+                    onClick={() => setConfirmDelete(block.id)}
+                  >
+                    🗑️
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <div className="card export-bar">
         <div className="stack">
           <h2>Ready to play?</h2>
           <p className="muted">
-            {project.items.length === 0
-              ? 'Your mod works even with no items — but it’s more fun with some!'
-              : `Your mod has ${project.items.length === 1 ? '1 item' : `${project.items.length} items`}.`}
+            {thingCount === 0
+              ? 'Your mod works even when it’s empty — but it’s more fun with stuff in it!'
+              : `Your mod has ${thingCount === 1 ? '1 thing' : `${thingCount} things`} in it.`}
           </p>
           {emptyTextures.length > 0 && (
             <p className="warn tiny">
-              ⚠️ {emptyTextures.length === 1 ? 'One item has' : `${emptyTextures.length} items have`} a blank
+              ⚠️ {emptyTextures.length === 1 ? 'One thing has' : `${emptyTextures.length} things have`} a blank
               picture. They’ll be invisible in the game!
             </p>
           )}

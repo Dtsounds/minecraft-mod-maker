@@ -22,9 +22,9 @@ import { dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { existsSync } from 'node:fs';
 import { buildAddon } from '../src/bedrock/pack';
-import { createProject, createItem } from '../src/bedrock/project';
+import { createProject, createItem, createBlock } from '../src/bedrock/project';
 import { blankTexture } from '../src/bedrock/texture';
-import type { BuiltAddon, ModItem, Texture } from '../src/bedrock/types';
+import type { BuiltAddon, ModBlock, ModItem, Texture } from '../src/bedrock/types';
 
 /**
  * Find com.mojang. There are several possible homes and only one is live:
@@ -139,6 +139,52 @@ const snack: ModItem = {
   canAlwaysEat: true,
 };
 project.items = [gem, sword, snack];
+
+// --- Blocks (Milestone 5) ---------------------------------------------------
+
+/** Plain solid block that drops itself; the baseline case. */
+const stone: ModBlock = {
+  ...createBlock(),
+  name: 'Test Stone',
+  texture: solidTexture('#ff8800'),
+  hardness: 3,
+};
+
+/** Glowing, pickaxe-gated, drops a vanilla diamond. Exercises light_emission,
+ *  the match_tool loot condition and a non-self drop all at once. */
+const ore: ModBlock = {
+  ...createBlock(),
+  name: 'Test Ore',
+  texture: solidTexture('#ffee00'),
+  hardness: 6,
+  glow: 14,
+  tool: 'pickaxe',
+  drop: { kind: 'vanilla', id: 'minecraft:diamond' },
+  dropCount: 2,
+};
+
+/** See-through, so render_method "blend" gets exercised. */
+const glass: ModBlock = {
+  ...createBlock(),
+  name: 'Test Glass',
+  texture: solidTexture('#66ddff'),
+  look: 'seeThrough',
+  hardness: 1,
+};
+
+/** Distinct top/side/bottom, plus a furnace recipe. */
+const grassy: ModBlock = {
+  ...createBlock(),
+  name: 'Test Grassy',
+  faceMode: 'topSideBottom',
+  texture: solidTexture('#8a5f3c'),
+  textureTop: solidTexture('#3fbf5f'),
+  textureBottom: solidTexture('#5a3a22'),
+  hardness: 2,
+  smelting: { enabled: true, input: 'minecraft:dirt' },
+};
+
+project.blocks = [stone, ore, glass, grassy];
 
 // --- World injection ---------------------------------------------------------
 
@@ -265,5 +311,12 @@ console.log('activated, so there is nothing to import or switch on.');
 console.log('\n  /give @s localtest:test_gem     -> solid MAGENTA square');
 console.log('  /give @s localtest:test_sword   -> solid GREEN square');
 console.log('  /give @s localtest:test_snack   -> solid CYAN square (edible)');
+console.log('');
+console.log('  /give @s localtest:test_stone   -> ORANGE block, drops itself');
+console.log('  /give @s localtest:test_ore     -> YELLOW block, GLOWS, needs a pickaxe,');
+console.log('                                     drops 2 diamonds (nothing by hand)');
+console.log('  /give @s localtest:test_glass   -> BLUE block you can SEE THROUGH');
+console.log('  /give @s localtest:test_grassy  -> GREEN top, BROWN sides, DARK bottom');
+console.log('                                     (smelt dirt in a furnace to make one)');
 console.log('\nRe-running overwrites the same folders in place, so there is never a');
 console.log('duplicate and never anything to re-activate.');

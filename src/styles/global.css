@@ -1072,3 +1072,21 @@ code {
   padding: 12px 14px;
   line-height: 1.45;
 }
+
+/* --- Block creator -------------------------------------------------- */
+
+.face-slot {
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #ffffff0f;
+  border: 3px solid #ffffff26;
+  border-radius: var(--radius-sm);
+}
+
+.rule {
+  border: none;
+  border-top: 3px solid #ffffff26;
+  margin: 6px 0;
+  width: 100%;
+}

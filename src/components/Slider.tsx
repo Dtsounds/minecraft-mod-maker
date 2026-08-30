@@ -1,7 +1,19 @@
-import type { SliderSpec } from '../bedrock/presets';
+/**
+ * Structural spec, so item presets and block presets can both drive this
+ * control without either importing the other's key union.
+ */
+export interface AnySliderSpec {
+  key: string;
+  label: string;
+  hint: string;
+  min: number;
+  max: number;
+  step: number;
+  unit?: string;
+}
 
 interface Props {
-  spec: SliderSpec;
+  spec: AnySliderSpec;
   value: number;
   onChange: (value: number) => void;
 }

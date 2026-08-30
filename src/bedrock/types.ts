@@ -56,6 +56,48 @@ export interface ModItem {
   recipe: Recipe;
 }
 
+/** How a block's faces are textured. */
+export type BlockFaceMode = 'all' | 'topSideBottom';
+
+/** Kid-facing look, mapped to a render_method in the generator. */
+export type BlockLook = 'solid' | 'seeThrough' | 'cutout';
+
+/** Which tool a block needs before it drops anything. */
+export type BlockTool = 'any' | 'pickaxe' | 'axe' | 'shovel';
+
+/** What a block drops when broken. */
+export type BlockDrop =
+  | { kind: 'self' }
+  | { kind: 'nothing' }
+  | { kind: 'vanilla'; id: string }
+  | { kind: 'myItem'; itemId: string };
+
+export interface Smelting {
+  enabled: boolean;
+  /** Vanilla item id that smelts into this block. */
+  input: string | null;
+}
+
+export interface ModBlock {
+  id: string;
+  name: string;
+  faceMode: BlockFaceMode;
+  /** Used for every face in 'all' mode, and the four sides otherwise. */
+  texture: Texture;
+  textureTop: Texture;
+  textureBottom: Texture;
+  look: BlockLook;
+  /** "How many hits to break" — mapped to seconds_to_destroy. */
+  hardness: number;
+  /** minecraft:light_emission, 0-15. */
+  glow: number;
+  tool: BlockTool;
+  drop: BlockDrop;
+  dropCount: number;
+  recipe: Recipe;
+  smelting: Smelting;
+}
+
 export interface ModProject {
   id: string;
   name: string;
@@ -74,6 +116,7 @@ export interface ModProject {
   /** Bumped on each export so re-imports replace the old copy. */
   version: [number, number, number];
   items: ModItem[];
+  blocks: ModBlock[];
   createdAt: number;
   updatedAt: number;
 }

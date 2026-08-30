@@ -1,6 +1,7 @@
 import { buildBehaviorManifest, buildResourceManifest } from './manifest';
 import { buildItemJson, itemShortName } from './item';
-import { buildRecipeJson } from './recipe';
+import { buildBlockJson, buildBlockLootTable, blockShortName } from './block';
+import { buildRecipeJson, buildBlockRecipeJson, buildSmeltingRecipeJson } from './recipe';
 import { textureToPng } from './texture';
 import { toAddonFileName, toIdentifierSegment, toPackFolderName } from './ids';
 import type { BuiltAddon, ModProject, PackFile } from './types';
@@ -74,9 +75,96 @@ export function buildAddon(project: ModProject): BuiltAddon {
     langLines.push(`item.${identifier}=${sanitizeLangValue(item.name)}`);
   }
 
-  // --- Resource pack texture atlas ----------------------------------------
-  // item_texture.json carries no format_version — the platform version
-  // guidance lists textures/*_texture.json as "(no versioning concept)".
+  // --- Blocks --------------------------------------------------------------
+  const terrainData: Record<string, { textures: string }> = {};
+  const usedBlockNames = new Set<string>();
+
+  // Map a kid's item id to its final namespaced identifier, so a block can
+  // drop one of their own items and still be de-duplicated consistently.
+  const itemIdentifierById = new Map<string, string>();
+  for (const item of project.items) {
+    itemIdentifierById.set(item.id, `${ns}:${itemShortName(item)}`);
+  }
+
+  for (const block of project.blocks ?? []) {
+    let shortName = blockShortName(block);
+    if (usedBlockNames.has(shortName)) {
+      let n = 2;
+      while (usedBlockNames.has(`${shortName}_${n}`)) n++;
+      shortName = `${shortName}_${n}`;
+    }
+    usedBlockNames.add(shortName);
+
+    const identifier = `${ns}:${shortName}`;
+    // Texture keys, re-derived from the de-duplicated short name.
+    const side = identifier;
+    const top = `${identifier}_top`;
+    const bottom = `${identifier}_bottom`;
+
+    const blockJson = buildBlockJson(ns, block);
+    const blockBody = blockJson['minecraft:block'];
+    blockBody.description.identifier = identifier;
+    const materials = blockBody.components['minecraft:material_instances'] as Record<
+      string,
+      { texture: string; render_method: string }
+    >;
+    if (materials['*']) materials['*'].texture = side;
+    if (materials['up']) materials['up'].texture = top;
+    if (materials['down']) materials['down'].texture = bottom;
+
+    const loot = buildBlockLootTable(ns, block, (itemId) => itemIdentifierById.get(itemId) ?? null);
+    if (loot) {
+      blockBody.components['minecraft:loot'] = `loot_tables/blocks/${shortName}.json`;
+      // Re-point a "drops itself" entry at the de-duplicated identifier.
+      for (const pool of loot.pools) {
+        for (const entry of pool.entries) {
+          if (entry.name === `${ns}:${blockShortName(block)}`) entry.name = identifier;
+        }
+      }
+      text(`${bp}/loot_tables/blocks/${shortName}.json`, json(loot));
+    } else {
+      // "Drops nothing" is expressed by omitting the component entirely,
+      // rather than pointing it at a loot table file that does not exist.
+      delete blockBody.components['minecraft:loot'];
+    }
+
+    // Written once, after the loot decision has settled the components.
+    text(`${bp}/blocks/${shortName}.json`, json(blockJson));
+
+    const blockRecipe = buildBlockRecipeJson(ns, block);
+    if (blockRecipe) {
+      const r = blockRecipe['minecraft:recipe_shaped'];
+      r.description.identifier = `${ns}:craft_${shortName}`;
+      r.result.item = identifier;
+      text(`${bp}/recipes/block_${shortName}.json`, json(blockRecipe));
+    }
+
+    const smelt = buildSmeltingRecipeJson(ns, block);
+    if (smelt) {
+      const r = smelt['minecraft:recipe_furnace'];
+      r.description.identifier = `${ns}:smelt_${shortName}`;
+      r.output = identifier;
+      text(`${bp}/recipes/smelt_${shortName}.json`, json(smelt));
+    }
+
+    // Block textures live in textures/blocks and the terrain atlas, NOT the
+    // item atlas — different folder, different file, different atlas name.
+    binary(`${rp}/textures/blocks/${shortName}.png`, textureToPng(block.texture));
+    terrainData[side] = { textures: `textures/blocks/${shortName}` };
+    if (block.faceMode === 'topSideBottom') {
+      binary(`${rp}/textures/blocks/${shortName}_top.png`, textureToPng(block.textureTop));
+      binary(`${rp}/textures/blocks/${shortName}_bottom.png`, textureToPng(block.textureBottom));
+      terrainData[top] = { textures: `textures/blocks/${shortName}_top` };
+      terrainData[bottom] = { textures: `textures/blocks/${shortName}_bottom` };
+    }
+    // Blocks use `tile.<id>.name` — note both the `tile.` prefix and the
+    // `.name` suffix, neither of which items use.
+    langLines.push(`tile.${identifier}.name=${sanitizeLangValue(block.name)}`);
+  }
+
+  // --- Resource pack texture atlases ---------------------------------------
+  // These carry no format_version — the platform version guidance lists
+  // textures/*_texture.json as "(no versioning concept)".
   text(
     `${rp}/textures/item_texture.json`,
     json({
@@ -85,6 +173,19 @@ export function buildAddon(project: ModProject): BuiltAddon {
       texture_data: textureData,
     }),
   );
+
+  if (Object.keys(terrainData).length > 0) {
+    text(
+      `${rp}/textures/terrain_texture.json`,
+      json({
+        resource_pack_name: toPackFolderName(project.name),
+        texture_name: 'atlas.terrain',
+        padding: 8,
+        num_mip_levels: 4,
+        texture_data: terrainData,
+      }),
+    );
+  }
 
   // --- Language file -------------------------------------------------------
   langLines.push(`pack.name=${sanitizeLangValue(project.name)}`);
