@@ -30,6 +30,13 @@ npm run install-local  # installs straight into the live Minecraft world
 | 5 — Block creator | ✅ verified on-device |
 | 6 — Mob creator | ✅ verified on-device |
 
+## Before changing Bedrock JSON
+
+`docs/bedrock-schema.md` is a cheat sheet of every schema fact already verified
+against a live client — grep it before researching anything online. It exists
+because the reference pages are ~60KB each and were misleading three separate
+times. `CLAUDE.md` carries the working rules for this repo.
+
 ## Architecture
 
 The generator layer (`src/bedrock/`) is deliberately free of React and DOM
