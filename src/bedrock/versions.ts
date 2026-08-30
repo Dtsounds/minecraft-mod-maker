@@ -83,6 +83,27 @@ export const RECIPE_FORMAT_VERSION = '1.26.40' as const;
 export const BLOCK_FORMAT_VERSION = '1.26.40' as const;
 
 /**
+ * format_version for behavior-pack entities/*.json.
+ *
+ * Deliberately NOT 1.26.x. The 1.26.40 release notes state that entity
+ * definitions using format_version 1.26.40 or later "now fail to load when
+ * invalid data is supplied to several components and AI goals", and advise
+ * validating content before raising its format version. The platform version
+ * guidance separately exempts entities from the N-1 rule, listing Entity
+ * Types as "(exempt - entity type versioning is highly variable)".
+ *
+ * So for entities specifically, staying below the strict-validation threshold
+ * is both safer and explicitly sanctioned.
+ */
+export const ENTITY_FORMAT_VERSION = '1.21.0' as const;
+
+/**
+ * format_version for resource-pack entity/*.entity.json (client entities).
+ * Vanilla still ships 1.10.0 for every one of these.
+ */
+export const CLIENT_ENTITY_FORMAT_VERSION = '1.10.0' as const;
+
+/**
  * Pack version reported in both manifests. Bumped when a kid re-exports so
  * Minecraft replaces the previously imported copy instead of ignoring it.
  */

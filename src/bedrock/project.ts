@@ -2,8 +2,10 @@ import { uuid, toNamespace } from './ids';
 import { blankTexture, normalizeTexture } from './texture';
 import { ITEM_PRESETS } from './presets';
 import { normalizeGrid } from './recipe';
-import type { BlockDrop, ItemKind, ModBlock, ModItem, ModProject, Texture } from './types';
+import type { BlockDrop, ItemKind, ModBlock, ModItem, ModMob, ModProject, MobDrop, Texture } from './types';
 import { BLOCK_LOOKS, BLOCK_TOOLS, GLOW, HARDNESS } from './blockPresets';
+import { MOB_MOODS, isMobFood } from './mobPresets';
+import { MOB_RIGS, mobRig } from './mobGeometry';
 
 /** A pleasant default icon so a brand-new mod is never a blank square. */
 function defaultIcon(): Texture {
@@ -36,6 +38,7 @@ export function createProject(name: string, description: string): ModProject {
     version: [1, 0, 0],
     items: [],
     blocks: [],
+    mobs: [],
     createdAt: now,
     updatedAt: now,
   };
@@ -111,6 +114,51 @@ export function normalizeBlock(raw: Partial<ModBlock> | undefined): ModBlock {
   };
 }
 
+export function createMob(): ModMob {
+  return {
+    id: uuid(),
+    name: '',
+    rig: 'quadruped',
+    texture: blankTexture(mobRig('quadruped').textureSize),
+    health: 10,
+    speed: 5,
+    damage: 3,
+    size: 10,
+    mood: 'friendly',
+    tameable: false,
+    tameFood: null,
+    rideable: false,
+    breedable: false,
+    breedFood: null,
+    drop: { kind: 'nothing' },
+    dropCount: 1,
+  };
+}
+
+/** Repair a mob loaded from storage. */
+export function normalizeMob(raw: Partial<ModMob> | undefined): ModMob {
+  const base = createMob();
+  const drop: MobDrop =
+    raw?.drop && typeof raw.drop === 'object' && 'kind' in raw.drop ? (raw.drop as MobDrop) : { kind: 'nothing' };
+  const rig = MOB_RIGS.some((r) => r.id === raw?.rig) ? (raw?.rig as ModMob['rig']) : 'quadruped';
+  return {
+    ...base,
+    ...raw,
+    id: typeof raw?.id === 'string' && raw.id ? raw.id : base.id,
+    name: typeof raw?.name === 'string' ? raw.name : '',
+    rig,
+    texture: normalizeTexture(raw?.texture),
+    mood: MOB_MOODS.some((m) => m.mood === raw?.mood) ? (raw?.mood as ModMob['mood']) : 'friendly',
+    tameable: raw?.tameable === true,
+    tameFood: isMobFood(raw?.tameFood) ? (raw?.tameFood as string) : null,
+    rideable: raw?.rideable === true,
+    breedable: raw?.breedable === true,
+    breedFood: isMobFood(raw?.breedFood) ? (raw?.breedFood as string) : null,
+    drop,
+    dropCount: typeof raw?.dropCount === 'number' ? raw.dropCount : 1,
+  };
+}
+
 /**
  * Repair anything loaded from storage. Autosaved state can predate a schema
  * change or be hand-edited; the app must still open it rather than crash.
@@ -154,6 +202,7 @@ export function normalizeProject(raw: Partial<ModProject> | undefined): ModProje
     version: Array.isArray(raw?.version) && raw.version.length === 3 ? (raw.version as [number, number, number]) : [1, 0, 0],
     items: Array.isArray(raw?.items) ? raw.items.map((i) => normalizeItem(i)) : [],
     blocks: Array.isArray(raw?.blocks) ? raw.blocks.map((b) => normalizeBlock(b)) : [],
+    mobs: Array.isArray(raw?.mobs) ? raw.mobs.map((m) => normalizeMob(m)) : [],
     createdAt: typeof raw?.createdAt === 'number' ? raw.createdAt : base.createdAt,
     updatedAt: typeof raw?.updatedAt === 'number' ? raw.updatedAt : base.updatedAt,
   };

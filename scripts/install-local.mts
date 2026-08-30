@@ -22,9 +22,11 @@ import { dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { existsSync } from 'node:fs';
 import { buildAddon } from '../src/bedrock/pack';
-import { createProject, createItem, createBlock } from '../src/bedrock/project';
+import { createProject, createItem, createBlock, createMob } from '../src/bedrock/project';
 import { blankTexture } from '../src/bedrock/texture';
-import type { BuiltAddon, ModBlock, ModItem, Texture } from '../src/bedrock/types';
+import { mobRig } from '../src/bedrock/mobGeometry';
+import { starterMobTexture } from '../src/components/mobStarter';
+import type { BuiltAddon, ModBlock, ModItem, ModMob, Texture } from '../src/bedrock/types';
 
 /**
  * Find com.mojang. There are several possible homes and only one is live:
@@ -186,6 +188,57 @@ const grassy: ModBlock = {
 
 project.blocks = [stone, ore, glass, grassy];
 
+// --- Mobs (Milestone 6) -----------------------------------------------------
+
+/** Friendly quadruped, tameable and breedable. The baseline creature. */
+const critter: ModMob = {
+  ...createMob(),
+  name: 'Test Critter',
+  rig: 'quadruped',
+  texture: starterMobTexture(mobRig('quadruped'), '#c05ad8'),
+  health: 20,
+  speed: 6,
+  mood: 'friendly',
+  tameable: true,
+  tameFood: 'minecraft:wheat',
+  breedable: true,
+  breedFood: 'minecraft:wheat',
+  drop: { kind: 'vanilla', id: 'minecraft:leather' },
+  dropCount: 2,
+};
+
+/** Hostile biped: exercises attack, melee and player targeting. */
+const brute: ModMob = {
+  ...createMob(),
+  name: 'Test Brute',
+  rig: 'biped',
+  texture: starterMobTexture(mobRig('biped'), '#3fbf5f'),
+  health: 30,
+  speed: 7,
+  damage: 5,
+  mood: 'mean',
+  drop: { kind: 'vanilla', id: 'minecraft:bone' },
+  dropCount: 1,
+};
+
+/** Small, fast, shy bird — and rideable, plus scaled up so minecraft:scale
+ *  and the collision box scaling both get exercised. */
+const birdy: ModMob = {
+  ...createMob(),
+  name: 'Test Birdy',
+  rig: 'bird',
+  texture: starterMobTexture(mobRig('bird'), '#ffb703'),
+  health: 8,
+  speed: 12,
+  size: 18,
+  mood: 'shy',
+  rideable: true,
+  drop: { kind: 'vanilla', id: 'minecraft:feather' },
+  dropCount: 3,
+};
+
+project.mobs = [critter, brute, birdy];
+
 // --- World injection ---------------------------------------------------------
 
 /**
@@ -318,5 +371,10 @@ console.log('                                     drops 2 diamonds (nothing by h
 console.log('  /give @s localtest:test_glass   -> BLUE block you can SEE THROUGH');
 console.log('  /give @s localtest:test_grassy  -> GREEN top, BROWN sides, DARK bottom');
 console.log('                                     (smelt dirt in a furnace to make one)');
+console.log('');
+console.log('  /summon localtest:test_critter  -> PURPLE 4-legged, tame with wheat, breeds');
+console.log('  /summon localtest:test_brute    -> GREEN 2-legged, chases and hits you');
+console.log('  /summon localtest:test_birdy    -> YELLOW bird, big, fast, runs away, rideable');
+console.log('  (spawn eggs are in the creative menu too)');
 console.log('\nRe-running overwrites the same folders in place, so there is never a');
 console.log('duplicate and never anything to re-activate.');

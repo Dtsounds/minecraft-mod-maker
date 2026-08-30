@@ -25,10 +25,10 @@ npm run install-local  # installs straight into the live Minecraft world
 | 0 — Scaffold, JSZip, IndexedDB autosave | ✅ |
 | 1 — Packaging pipeline (BP/RP manifests → `.mcaddon`) | ✅ |
 | 2 — Pixel texture editor | ✅ |
-| 3 — Item creator (7 presets + 3×3 recipe builder) | ✅ |
-| 4 — Export onboarding + My Mods | ✅ |
-| 5 — Block creator | not started |
-| 6 — Mob creator | not started |
+| 3 — Item creator (7 presets + 3×3 recipe builder) | ✅ verified on-device |
+| 4 — Export onboarding + My Mods | ✅ verified on-device |
+| 5 — Block creator | ✅ verified on-device |
+| 6 — Mob creator | ✅ built, awaiting on-device check |
 
 ## Architecture
 
@@ -61,7 +61,10 @@ choice.
 | manifest `format_version` | `2` (v3 is preview-only) |
 | `min_engine_version` | `[1, 26, 0]` |
 | items `format_version` | `"1.26.40"` |
+| blocks `format_version` | `"1.26.40"` |
 | recipes `format_version` | `"1.26.40"` |
+| entities `format_version` | `"1.21.0"` (see below) |
+| client entities `format_version` | `"1.10.0"` (what vanilla still ships) |
 | `textures/*_texture.json` | no `format_version` (none exists for these) |
 
 **Version numbering:** since 2026 the retail client shows a year-based string
@@ -81,6 +84,39 @@ won:
 
 - Manifest `dependencies` is a **top-level** section, not `header.dependencies`.
 - The `.lang` display-name key is `item.<ns>:<id>=Name`, **not** `…​.name=Name`.
+
+**Entities are the one exception to targeting the newest schema.** The 1.26.40
+notes say entity definitions at 1.26.40+ "now fail to load when invalid data is
+supplied to several components and AI goals", and the platform guidance
+separately exempts entities from the N-1 rule ("entity type versioning is highly
+variable"). Staying below that strict-validation threshold is Mojang's own
+advice.
+
+### Three registries, three sets of rules
+
+Items, blocks and mobs each differ in ways that fail *silently* if you assume
+they work alike:
+
+| | Items | Blocks | Mobs |
+| --- | --- | --- | --- |
+| texture atlas | `item_texture.json` (`atlas.items`) | `terrain_texture.json` (`atlas.terrain`) | direct path, no atlas |
+| lang key | `item.<ns>:<id>` | `tile.<ns>:<id>.name` | `entity.<ns>:<id>.name` |
+| `minecraft:loot` | n/a | bare string | object with `table` |
+
+### Mob geometry: our own rigs, vanilla animations
+
+The build prompt suggests referencing vanilla geometry identifiers. We don't,
+for two reasons: they are versioned and churn (`geometry.pig.v1.8` →
+`geometry.pig.v3`, `geometry.cow.v2`), and vanilla UV layouts are sized like
+64×32 so a kid painting our square canvas would land pixels in meaningless
+places.
+
+Instead `mobGeometry.ts` ships three fixed box rigs under our own identifiers.
+That is not 3D modelling — a kid never edits them and there is no modelling UI —
+but it gives us control of the UV layout and immunity from vanilla renames.
+Animation still comes from vanilla: `animation.quadruped.walk` was verified
+against Mojang's `quadruped.animation.json` to animate exactly `leg0`–`leg3`, so
+every rig names its legs that way and gets vanilla leg movement free.
 
 ### Dependency direction (learned the hard way)
 

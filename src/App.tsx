@@ -5,12 +5,13 @@ import { EditorScreen } from './screens/EditorScreen';
 import { PixelEditor } from './components/PixelEditor/PixelEditor';
 import { ItemScreen } from './screens/ItemScreen';
 import { BlockScreen } from './screens/BlockScreen';
+import { MobScreen } from './screens/MobScreen';
 import { ExportScreen } from './screens/ExportScreen';
 import { deleteProject, listProjects, saveProject } from './storage/db';
 import { useAutosave } from './storage/useAutosave';
-import { createProject, createItem, createBlock, bumpVersion } from './bedrock/project';
+import { createProject, createItem, createBlock, createMob, bumpVersion } from './bedrock/project';
 import { exportProject } from './bedrock/package';
-import type { ModBlock, ModItem, ModProject } from './bedrock/types';
+import type { ModBlock, ModItem, ModMob, ModProject } from './bedrock/types';
 
 type Screen =
   | { name: 'home' }
@@ -19,6 +20,7 @@ type Screen =
   | { name: 'icon' }
   | { name: 'item'; itemId: string }
   | { name: 'block'; blockId: string }
+  | { name: 'mob'; mobId: string }
   | { name: 'exported'; fileName: string };
 
 export default function App() {
@@ -35,6 +37,9 @@ export default function App() {
 
   const editingBlock =
     screen.name === 'block' ? ((project?.blocks ?? []).find((b) => b.id === screen.blockId) ?? null) : null;
+
+  const editingMob =
+    screen.name === 'mob' ? ((project?.mobs ?? []).find((m) => m.id === screen.mobId) ?? null) : null;
 
   const refresh = useCallback(async () => {
     setProjects(await listProjects());
@@ -138,6 +143,29 @@ export default function App() {
     [update],
   );
 
+  const handleAddMob = useCallback(() => {
+    const mob = createMob();
+    update((draft) => ({ ...draft, mobs: [...(draft.mobs ?? []), mob] }));
+    setScreen({ name: 'mob', mobId: mob.id });
+  }, [update]);
+
+  const handleMobChange = useCallback(
+    (next: ModMob) => {
+      update((draft) => ({
+        ...draft,
+        mobs: (draft.mobs ?? []).map((m) => (m.id === next.id ? next : m)),
+      }));
+    },
+    [update],
+  );
+
+  const handleDeleteMob = useCallback(
+    (mob: ModMob) => {
+      update((draft) => ({ ...draft, mobs: (draft.mobs ?? []).filter((m) => m.id !== mob.id) }));
+    },
+    [update],
+  );
+
   const handleDeleteItem = useCallback(
     (item: ModItem) => {
       update((draft) => ({ ...draft, items: draft.items.filter((i) => i.id !== item.id) }));
@@ -203,6 +231,16 @@ export default function App() {
           />
         )}
 
+        {screen.name === 'mob' && project && editingMob && (
+          <MobScreen
+            mob={editingMob}
+            items={project.items}
+            namespace={project.namespace}
+            onChange={handleMobChange}
+            onDone={() => setScreen({ name: 'editor' })}
+          />
+        )}
+
         {screen.name === 'icon' && project && (
           <div className="card">
             <PixelEditor
@@ -232,6 +270,9 @@ export default function App() {
             onAddBlock={handleAddBlock}
             onEditBlock={(block) => setScreen({ name: 'block', blockId: block.id })}
             onDeleteBlock={handleDeleteBlock}
+            onAddMob={handleAddMob}
+            onEditMob={(mob) => setScreen({ name: 'mob', mobId: mob.id })}
+            onDeleteMob={handleDeleteMob}
             onDeleteItem={handleDeleteItem}
             onEditIcon={() => setScreen({ name: 'icon' })}
           />

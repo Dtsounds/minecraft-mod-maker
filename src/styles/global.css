@@ -1090,3 +1090,8 @@ code {
   margin: 6px 0;
   width: 100%;
 }
+
+/* Mob skin preview: the sheet is a UV atlas, so show it whole. */
+.mob-skin {
+  image-rendering: pixelated;
+}

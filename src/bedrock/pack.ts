@@ -2,6 +2,8 @@ import { buildBehaviorManifest, buildResourceManifest } from './manifest';
 import { buildItemJson, itemShortName } from './item';
 import { buildBlockJson, buildBlockLootTable, blockShortName } from './block';
 import { buildRecipeJson, buildBlockRecipeJson, buildSmeltingRecipeJson } from './recipe';
+import { buildClientEntityJson, buildEntityJson, buildMobLootTable, mobShortName } from './mob';
+import { buildGeometryJson, mobRig } from './mobGeometry';
 import { textureToPng } from './texture';
 import { toAddonFileName, toIdentifierSegment, toPackFolderName } from './ids';
 import type { BuiltAddon, ModProject, PackFile } from './types';
@@ -160,6 +162,63 @@ export function buildAddon(project: ModProject): BuiltAddon {
     // Blocks use `tile.<id>.name` — note both the `tile.` prefix and the
     // `.name` suffix, neither of which items use.
     langLines.push(`tile.${identifier}.name=${sanitizeLangValue(block.name)}`);
+  }
+
+  // --- Mobs ----------------------------------------------------------------
+  const usedMobNames = new Set<string>();
+
+  for (const mob of project.mobs ?? []) {
+    let shortName = mobShortName(mob);
+    if (usedMobNames.has(shortName)) {
+      let n = 2;
+      while (usedMobNames.has(`${shortName}_${n}`)) n++;
+      shortName = `${shortName}_${n}`;
+    }
+    usedMobNames.add(shortName);
+
+    const identifier = `${ns}:${shortName}`;
+    const rig = mobRig(mob.rig);
+
+    const entityJson = buildEntityJson(ns, mob);
+    const entityBody = entityJson['minecraft:entity'];
+    entityBody.description.identifier = identifier;
+    // Breeding refers to the mob's own identifier for both mate and baby.
+    const breedable = entityBody.components['minecraft:breedable'] as
+      | { breeds_with: { mate_type: string; baby_type: string } }
+      | undefined;
+    if (breedable) {
+      breedable.breeds_with.mate_type = identifier;
+      breedable.breeds_with.baby_type = identifier;
+    }
+
+    const loot = buildMobLootTable(mob, (itemId) => itemIdentifierById.get(itemId) ?? null);
+    if (loot) {
+      // Entity loot uses an OBJECT with a `table` key, unlike blocks, where
+      // minecraft:loot is a bare string. Copied from vanilla chicken.json.
+      entityBody.components['minecraft:loot'] = { table: `loot_tables/entities/${shortName}.json` };
+      text(`${bp}/loot_tables/entities/${shortName}.json`, json(loot));
+    }
+    text(`${bp}/entities/${shortName}.json`, json(entityJson));
+
+    const clientJson = buildClientEntityJson(ns, mob);
+    const clientBody = clientJson['minecraft:client_entity'].description;
+    clientBody.identifier = identifier;
+    clientBody.textures['default'] = `textures/entity/${shortName}`;
+    const geometryId = `geometry.${ns}.${shortName}`;
+    clientBody.geometry['default'] = geometryId;
+    text(`${rp}/entity/${shortName}.entity.json`, json(clientJson));
+
+    // Our own rig, under our own identifier, so vanilla renaming its
+    // versioned geometry cannot break a kid's mob.
+    text(`${rp}/models/entity/${shortName}.geo.json`, json(buildGeometryJson(geometryId, rig)));
+
+    binary(`${rp}/textures/entity/${shortName}.png`, textureToPng(mob.texture));
+
+    // Entities use `entity.<id>.name`, and the spawn egg has its own key.
+    langLines.push(`entity.${identifier}.name=${sanitizeLangValue(mob.name)}`);
+    langLines.push(
+      `item.spawn_egg.entity.${identifier}.name=Spawn ${sanitizeLangValue(mob.name)}`,
+    );
   }
 
   // --- Resource pack texture atlases ---------------------------------------

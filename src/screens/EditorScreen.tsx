@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ModBlock, ModItem, ModProject } from '../bedrock/types';
+import type { ModBlock, ModItem, ModMob, ModProject } from '../bedrock/types';
 import { TexturePreview } from '../components/TexturePreview';
 import { ITEM_PRESETS } from '../bedrock/presets';
 import { isTextureEmpty } from '../bedrock/texture';
@@ -17,6 +17,9 @@ interface Props {
   onAddBlock: () => void;
   onEditBlock: (block: ModBlock) => void;
   onDeleteBlock: (block: ModBlock) => void;
+  onAddMob: () => void;
+  onEditMob: (mob: ModMob) => void;
+  onDeleteMob: (mob: ModMob) => void;
   onEditIcon: () => void;
 }
 
@@ -45,15 +48,20 @@ export function EditorScreen({
   onAddBlock,
   onEditBlock,
   onDeleteBlock,
+  onAddMob,
+  onEditMob,
+  onDeleteMob,
   onEditIcon,
 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const blocks = project.blocks ?? [];
+  const mobs = project.mobs ?? [];
   const emptyTextures = [
     ...project.items.filter((i) => isTextureEmpty(i.texture)),
     ...blocks.filter((b) => isTextureEmpty(b.texture)),
+    ...mobs.filter((m) => isTextureEmpty(m.texture)),
   ];
-  const thingCount = project.items.length + blocks.length;
+  const thingCount = project.items.length + blocks.length + mobs.length;
 
   return (
     <div className="stack">
@@ -199,6 +207,69 @@ export function EditorScreen({
                     className="btn btn--danger btn--icon mod-card__delete"
                     aria-label={`Delete ${block.name || 'this block'}`}
                     onClick={() => setConfirmDelete(block.id)}
+                  >
+                    🗑️
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="stack">
+        <div className="row">
+          <h2>Creatures</h2>
+          <span className="spacer" />
+          <button className="btn btn--sky" onClick={onAddMob}>
+            ➕ Add a creature
+          </button>
+        </div>
+
+        {mobs.length === 0 && (
+          <div className="card card--flat empty">
+            <p className="muted">No creatures yet. Make an animal or a monster that walks around!</p>
+          </div>
+        )}
+
+        {mobs.length > 0 && (
+          <ul className="mod-list grid-auto">
+            {mobs.map((mob) => (
+              <li key={mob.id} className="mod-card">
+                <button
+                  className="mod-card__open"
+                  aria-label={`Edit ${mob.name || 'this creature'}`}
+                  onClick={() => onEditMob(mob)}
+                >
+                  <TexturePreview texture={mob.texture} size={64} label={`${mob.name || 'Creature'} skin`} />
+                  <span className="mod-card__name">{mob.name || 'Unnamed creature'}</span>
+                  <span className="tiny muted">🐾 Creature</span>
+                </button>
+                {confirmDelete === mob.id ? (
+                  <div className="mod-card__confirm">
+                    <button
+                      className="btn btn--danger btn--icon"
+                      aria-label={`Really delete ${mob.name || 'this creature'}`}
+                      onClick={() => {
+                        onDeleteMob(mob);
+                        setConfirmDelete(null);
+                      }}
+                    >
+                      ✓
+                    </button>
+                    <button
+                      className="btn btn--ghost btn--icon"
+                      aria-label="Keep it"
+                      onClick={() => setConfirmDelete(null)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className="btn btn--danger btn--icon mod-card__delete"
+                    aria-label={`Delete ${mob.name || 'this creature'}`}
+                    onClick={() => setConfirmDelete(mob.id)}
                   >
                     🗑️
                   </button>

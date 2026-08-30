@@ -98,6 +98,34 @@ export interface ModBlock {
   smelting: Smelting;
 }
 
+export type MobRigId = 'quadruped' | 'biped' | 'bird';
+export type MobMood = 'friendly' | 'shy' | 'mean';
+
+/** What a mob drops when defeated. */
+export type MobDrop =
+  | { kind: 'nothing' }
+  | { kind: 'vanilla'; id: string }
+  | { kind: 'myItem'; itemId: string };
+
+export interface ModMob {
+  id: string;
+  name: string;
+  rig: MobRigId;
+  texture: Texture;
+  health: number;
+  speed: number;
+  damage: number;
+  size: number;
+  mood: MobMood;
+  tameable: boolean;
+  tameFood: string | null;
+  rideable: boolean;
+  breedable: boolean;
+  breedFood: string | null;
+  drop: MobDrop;
+  dropCount: number;
+}
+
 export interface ModProject {
   id: string;
   name: string;
@@ -117,6 +145,7 @@ export interface ModProject {
   version: [number, number, number];
   items: ModItem[];
   blocks: ModBlock[];
+  mobs: ModMob[];
   createdAt: number;
   updatedAt: number;
 }
