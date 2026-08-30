@@ -188,3 +188,92 @@ describe('clamping — a kid must never produce an absurd value', () => {
     expect(json['minecraft:item'].components['minecraft:display_name']).toEqual({ value: 'My Item' });
   });
 });
+
+describe('bow preset', () => {
+  it('always pairs shooter with use_modifiers', () => {
+    // The shooter reference: it "must have the minecraft:use_modifiers
+    // component in order to function properly".
+    const c = buildItemJson('mymod', make('bow'))['minecraft:item'].components;
+    expect(c['minecraft:shooter']).toBeDefined();
+    expect(c['minecraft:use_modifiers']).toBeDefined();
+  });
+
+  it('shoots vanilla arrows, which already carry minecraft:projectile', () => {
+    const shooter = buildItemJson('mymod', make('bow'))['minecraft:item'].components[
+      'minecraft:shooter'
+    ] as { ammunition: { item: string; search_inventory: boolean; use_in_creative: boolean }[] };
+    expect(shooter.ammunition[0]?.item).toBe('minecraft:arrow');
+    // Without these a kid in Creative would find the bow simply does nothing.
+    expect(shooter.ammunition[0]?.search_inventory).toBe(true);
+    expect(shooter.ammunition[0]?.use_in_creative).toBe(true);
+  });
+
+  it('is a single-slot hand item with durability', () => {
+    const c = buildItemJson('mymod', make('bow'))['minecraft:item'].components;
+    expect(c['minecraft:max_stack_size']).toBe(1);
+    expect(c['minecraft:hand_equipped']).toBe(true);
+    expect(c['minecraft:durability']).toMatchObject({ max_durability: expect.any(Number) });
+  });
+
+  it('scales draw duration with the slider and keeps it positive', () => {
+    const draw = (drawTime: number) =>
+      (
+        buildItemJson('mymod', make('bow', { drawTime }))['minecraft:item'].components[
+          'minecraft:shooter'
+        ] as { max_draw_duration: number }
+      ).max_draw_duration;
+    expect(draw(10)).toBeGreaterThan(draw(1));
+    for (const value of [-5, 0, 9999, NaN]) expect(draw(value)).toBeGreaterThan(0);
+  });
+
+  it('does not give a bow melee damage or a digger', () => {
+    const c = buildItemJson('mymod', make('bow'))['minecraft:item'].components;
+    expect(c['minecraft:damage']).toBeUndefined();
+    expect(c['minecraft:digger']).toBeUndefined();
+  });
+});
+
+describe('throwing weapon preset', () => {
+  it('pairs throwable with a projectile entity', () => {
+    // Here the ITEM is what flies, so it carries minecraft:projectile itself.
+    const c = buildItemJson('mymod', make('throwable'))['minecraft:item'].components;
+    expect(c['minecraft:throwable']).toBeDefined();
+    expect(c['minecraft:projectile']).toMatchObject({ projectile_entity: 'minecraft:arrow' });
+  });
+
+  it('maps each projectile choice to a real vanilla entity', () => {
+    const entities: Record<string, string> = {
+      arrow: 'minecraft:arrow',
+      snowball: 'minecraft:snowball',
+      egg: 'minecraft:egg',
+    };
+    for (const [kind, entity] of Object.entries(entities)) {
+      const c = buildItemJson('mymod', make('throwable', { projectileKind: kind as 'arrow' }))[
+        'minecraft:item'
+      ].components;
+      expect(c['minecraft:projectile']).toMatchObject({ projectile_entity: entity });
+    }
+  });
+
+  it('falls back to arrow if stored state has a bogus projectile', () => {
+    const c = buildItemJson('mymod', make('throwable', { projectileKind: 'nonsense' as 'arrow' }))[
+      'minecraft:item'
+    ].components;
+    expect(c['minecraft:projectile']).toMatchObject({ projectile_entity: 'minecraft:arrow' });
+  });
+
+  it('stacks, unlike a bow', () => {
+    const c = buildItemJson('mymod', make('throwable', { stackSize: 16 }))['minecraft:item'].components;
+    expect(c['minecraft:max_stack_size']).toBe(16);
+  });
+
+  it('clamps launch power to something sane', () => {
+    for (const throwPower of [-100, 0, 9999, NaN]) {
+      const t = buildItemJson('mymod', make('throwable', { throwPower }))['minecraft:item'].components[
+        'minecraft:throwable'
+      ] as { max_launch_power: number };
+      expect(t.max_launch_power).toBeGreaterThan(0);
+      expect(t.max_launch_power).toBeLessThanOrEqual(5);
+    }
+  });
+});

@@ -1,4 +1,4 @@
-import type { ArmorSlot, ItemKind } from './types';
+import type { ArmorSlot, ItemKind, ProjectileKind } from './types';
 
 /**
  * Item type presets.
@@ -10,7 +10,15 @@ import type { ArmorSlot, ItemKind } from './types';
  * autosaved state by hand.
  */
 
-export type SliderKey = 'power' | 'durability' | 'digSpeed' | 'protection' | 'nutrition' | 'stackSize';
+export type SliderKey =
+  | 'power'
+  | 'durability'
+  | 'digSpeed'
+  | 'protection'
+  | 'nutrition'
+  | 'stackSize'
+  | 'drawTime'
+  | 'throwPower';
 
 export interface SliderSpec {
   key: SliderKey;
@@ -33,6 +41,7 @@ export interface ItemPreset {
   /** Toggles this preset exposes. */
   hasArmorSlotPicker?: boolean;
   hasAlwaysEatToggle?: boolean;
+  hasProjectilePicker?: boolean;
 }
 
 const POWER: SliderSpec = {
@@ -53,6 +62,15 @@ const DURABILITY: SliderSpec = {
   step: 10,
 };
 
+const STACK_SIZE: SliderSpec = {
+  key: 'stackSize',
+  label: 'How many fit in one slot',
+  hint: 'Like how 64 dirt fit in one slot.',
+  min: 1,
+  max: 64,
+  step: 1,
+};
+
 const DIG_SPEED: SliderSpec = {
   key: 'digSpeed',
   label: 'Digging speed',
@@ -61,6 +79,66 @@ const DIG_SPEED: SliderSpec = {
   max: 20,
   step: 1,
 };
+
+const DRAW_TIME: SliderSpec = {
+  key: 'drawTime',
+  label: 'How long you pull it back',
+  hint: 'Longer means a slower shot, but it flies further.',
+  min: 1,
+  max: 10,
+  step: 1,
+};
+
+const THROW_POWER: SliderSpec = {
+  key: 'throwPower',
+  label: 'How hard it flies',
+  hint: 'Higher means it goes further and faster.',
+  min: 1,
+  max: 10,
+  step: 1,
+};
+
+/**
+ * What a throwing weapon turns into once it leaves your hand.
+ *
+ * These are vanilla projectile ENTITIES, not items — the throwable component
+ * names an entity to spawn. Only arrows deal real damage; the other two are
+ * for fun, which is worth saying plainly in the UI rather than letting a kid
+ * wonder why their ninja star tickles.
+ */
+export const PROJECTILE_KINDS: {
+  kind: ProjectileKind;
+  label: string;
+  emoji: string;
+  blurb: string;
+  entity: string;
+}[] = [
+  {
+    kind: 'arrow',
+    label: 'Sharp',
+    emoji: '🏹',
+    blurb: 'Really hurts. Flies like an arrow.',
+    entity: 'minecraft:arrow',
+  },
+  {
+    kind: 'snowball',
+    label: 'Bonk',
+    emoji: '❄️',
+    blurb: 'Knocks mobs about but doesn’t hurt them.',
+    entity: 'minecraft:snowball',
+  },
+  {
+    kind: 'egg',
+    label: 'Splat',
+    emoji: '🥚',
+    blurb: 'Splats like an egg. Might make a chicken!',
+    entity: 'minecraft:egg',
+  },
+];
+
+export function projectileSpec(kind: ProjectileKind) {
+  return PROJECTILE_KINDS.find((p) => p.kind === kind) ?? (PROJECTILE_KINDS[0] as (typeof PROJECTILE_KINDS)[number]);
+}
 
 export const ITEM_PRESETS: Record<ItemKind, ItemPreset> = {
   sword: {
@@ -90,6 +168,21 @@ export const ITEM_PRESETS: Record<ItemKind, ItemPreset> = {
     emoji: '🥄',
     blurb: 'For digging dirt and sand.',
     sliders: [POWER, DURABILITY, DIG_SPEED],
+  },
+  bow: {
+    kind: 'bow',
+    label: 'Bow',
+    emoji: '🏹',
+    blurb: 'Shoots arrows from far away.',
+    sliders: [DRAW_TIME, DURABILITY],
+  },
+  throwable: {
+    kind: 'throwable',
+    label: 'Throwing weapon',
+    emoji: '🪃',
+    blurb: 'Chuck it! Like a ninja star.',
+    sliders: [THROW_POWER, { ...STACK_SIZE, label: 'How many you can carry' }],
+    hasProjectilePicker: true,
   },
   armor: {
     kind: 'armor',
@@ -131,20 +224,21 @@ export const ITEM_PRESETS: Record<ItemKind, ItemPreset> = {
     label: 'Just an item',
     emoji: '💎',
     blurb: 'A collectible. Great for crafting recipes.',
-    sliders: [
-      {
-        key: 'stackSize',
-        label: 'How many fit in one slot',
-        hint: 'Like how 64 dirt fit in one slot.',
-        min: 1,
-        max: 64,
-        step: 1,
-      },
-    ],
+    sliders: [STACK_SIZE],
   },
 };
 
-export const ITEM_PRESET_ORDER: ItemKind[] = ['sword', 'pickaxe', 'axe', 'shovel', 'armor', 'food', 'plain'];
+export const ITEM_PRESET_ORDER: ItemKind[] = [
+  'sword',
+  'bow',
+  'throwable',
+  'pickaxe',
+  'axe',
+  'shovel',
+  'armor',
+  'food',
+  'plain',
+];
 
 export const ARMOR_SLOTS: { slot: ArmorSlot; label: string; emoji: string; wearableSlot: string }[] = [
   { slot: 'head', label: 'Helmet', emoji: '🪖', wearableSlot: 'slot.armor.head' },

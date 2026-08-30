@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ItemKind, ModItem } from '../bedrock/types';
-import { ARMOR_SLOTS, ITEM_PRESETS, ITEM_PRESET_ORDER } from '../bedrock/presets';
+import { ARMOR_SLOTS, ITEM_PRESETS, ITEM_PRESET_ORDER, PROJECTILE_KINDS } from '../bedrock/presets';
 import { Slider } from '../components/Slider';
 import { TexturePreview } from '../components/TexturePreview';
 import { PixelEditor } from '../components/PixelEditor/PixelEditor';
@@ -209,6 +209,34 @@ export function ItemScreen({ item, namespace, onChange, onDone }: Props) {
                 ))}
               </div>
             </div>
+          )}
+
+          {preset.hasProjectilePicker && (
+            <div className="stack">
+              <span className="field__label">What happens when it lands?</span>
+              <div className="kind-grid" role="group" aria-label="What it does when it lands">
+                {PROJECTILE_KINDS.map((spec) => (
+                  <button
+                    key={spec.kind}
+                    className={`kind ${item.projectileKind === spec.kind ? 'kind--on' : ''}`}
+                    aria-pressed={item.projectileKind === spec.kind}
+                    onClick={() => patch({ projectileKind: spec.kind })}
+                  >
+                    <span className="kind__emoji" aria-hidden>
+                      {spec.emoji}
+                    </span>
+                    <span className="kind__label">{spec.label}</span>
+                    <span className="tiny muted">{spec.blurb}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {item.kind === 'bow' && (
+            <p className="note">
+              💡 Your bow shoots normal arrows, so keep some in your bag. In Creative you don’t need any.
+            </p>
           )}
 
           {preset.hasAlwaysEatToggle && (

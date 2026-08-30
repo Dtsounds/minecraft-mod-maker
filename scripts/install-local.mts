@@ -140,7 +140,36 @@ const snack: ModItem = {
   nutrition: 8,
   canAlwaysEat: true,
 };
-project.items = [gem, sword, snack];
+/** Bow: shooter + use_modifiers, firing vanilla arrows. */
+const bow: ModItem = {
+  ...createItem('bow'),
+  name: 'Test Bow',
+  texture: solidTexture('#ffb703'),
+  drawTime: 4,
+  durability: 400,
+};
+
+/** Throwing weapon: the item itself becomes an arrow entity in flight. */
+const star: ModItem = {
+  ...createItem('throwable'),
+  name: 'Test Star',
+  texture: solidTexture('#ff4d5e'),
+  throwPower: 8,
+  stackSize: 16,
+  projectileKind: 'arrow',
+};
+
+/** Same, but harmless — checks the projectile picker actually changes what flies. */
+const snowStar: ModItem = {
+  ...createItem('throwable'),
+  name: 'Test Snowstar',
+  texture: solidTexture('#c6ecff'),
+  throwPower: 6,
+  stackSize: 16,
+  projectileKind: 'snowball',
+};
+
+project.items = [gem, sword, snack, bow, star, snowStar];
 
 // --- Blocks (Milestone 5) ---------------------------------------------------
 
@@ -364,6 +393,9 @@ console.log('activated, so there is nothing to import or switch on.');
 console.log('\n  /give @s localtest:test_gem     -> solid MAGENTA square');
 console.log('  /give @s localtest:test_sword   -> solid GREEN square');
 console.log('  /give @s localtest:test_snack   -> solid CYAN square (edible)');
+console.log('  /give @s localtest:test_bow     -> YELLOW bow, hold to draw, shoots arrows');
+console.log('  /give @s localtest:test_star    -> RED star, THROW it, hurts (stacks to 16)');
+console.log('  /give @s localtest:test_snowstar-> PALE star, throws a harmless snowball');
 console.log('');
 console.log('  /give @s localtest:test_stone   -> ORANGE block, drops itself');
 console.log('  /give @s localtest:test_ore     -> YELLOW block, GLOWS, needs a pickaxe,');

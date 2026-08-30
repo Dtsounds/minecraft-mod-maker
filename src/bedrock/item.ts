@@ -1,6 +1,14 @@
 import { ITEM_FORMAT_VERSION } from './versions';
 import { clampInt, toIdentifier, toIdentifierSegment } from './ids';
-import { ARMOR_SLOTS, DIGGER_KINDS, DIGGER_TAG, ITEM_PRESETS, TOOL_KINDS, armorSlotSpec } from './presets';
+import {
+  ARMOR_SLOTS,
+  DIGGER_KINDS,
+  DIGGER_TAG,
+  ITEM_PRESETS,
+  TOOL_KINDS,
+  armorSlotSpec,
+  projectileSpec,
+} from './presets';
 import type { ItemKind, ModItem } from './types';
 
 export interface ItemJson {
@@ -21,6 +29,8 @@ function menuCategory(kind: ItemKind): { category: string; group?: string } {
     case 'pickaxe':
     case 'axe':
     case 'shovel':
+    case 'bow':
+    case 'throwable':
     case 'armor':
       return { category: 'equipment' };
     case 'food':
@@ -31,7 +41,10 @@ function menuCategory(kind: ItemKind): { category: string; group?: string } {
 }
 
 /** Read a slider value back through its preset's clamp. Never trusts input. */
-export function clampedSlider(item: ModItem, key: 'power' | 'durability' | 'digSpeed' | 'protection' | 'nutrition' | 'stackSize'): number {
+export function clampedSlider(
+  item: ModItem,
+  key: 'power' | 'durability' | 'digSpeed' | 'protection' | 'nutrition' | 'stackSize' | 'drawTime' | 'throwPower',
+): number {
   const spec = ITEM_PRESETS[item.kind].sliders.find((s) => s.key === key);
   const raw = item[key];
   if (!spec) {
@@ -106,6 +119,59 @@ export function buildItemJson(namespace: string, item: ModItem): ItemJson {
         ],
       };
     }
+  }
+
+  if (item.kind === 'bow') {
+    // The shooter reference is explicit on both of these: it "must have the
+    // minecraft:use_modifiers component in order to function properly", and
+    // its ammunition "must have the minecraft:projectile component". Vanilla
+    // arrows already carry projectile, which is why arrows are the ammo.
+    const drawTime = clampedSlider(item, 'drawTime');
+    components['minecraft:max_stack_size'] = 1;
+    components['minecraft:hand_equipped'] = true;
+    components['minecraft:durability'] = {
+      max_durability: clampedSlider(item, 'durability'),
+      damage_chance: { min: 100, max: 100 },
+    };
+    components['minecraft:shooter'] = {
+      ammunition: [
+        {
+          item: 'minecraft:arrow',
+          search_inventory: true,
+          use_in_creative: true,
+          use_offhand: true,
+        },
+      ],
+      max_draw_duration: Math.round(drawTime * 0.2 * 10) / 10,
+      scale_power_by_draw_duration: true,
+      charge_on_draw: false,
+    };
+    components['minecraft:use_modifiers'] = {
+      use_duration: 999,
+      movement_modifier: 0.35,
+    };
+  }
+
+  if (item.kind === 'throwable') {
+    // The item itself becomes the projectile, so it needs minecraft:projectile
+    // naming the ENTITY to spawn — unlike a bow, where the arrow carries it.
+    const power = clampedSlider(item, 'throwPower');
+    const projectile = projectileSpec(item.projectileKind ?? 'arrow');
+    components['minecraft:max_stack_size'] = clampedSlider(item, 'stackSize');
+    components['minecraft:throwable'] = {
+      do_swing_animation: true,
+      launch_power_scale: 1.0,
+      max_launch_power: Math.round(power * 0.2 * 10) / 10,
+      scale_power_by_draw_duration: false,
+    };
+    components['minecraft:projectile'] = {
+      projectile_entity: projectile.entity,
+      minimum_critical_power: 1.25,
+    };
+    components['minecraft:use_modifiers'] = {
+      use_duration: 0.1,
+      movement_modifier: 1.0,
+    };
   }
 
   if (item.kind === 'armor') {

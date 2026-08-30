@@ -1,6 +1,6 @@
 import { uuid, toNamespace } from './ids';
 import { blankTexture, normalizeTexture } from './texture';
-import { ITEM_PRESETS } from './presets';
+import { ITEM_PRESETS, PROJECTILE_KINDS } from './presets';
 import { normalizeGrid } from './recipe';
 import type { BlockDrop, ItemKind, ModBlock, ModItem, ModMob, ModProject, MobDrop, Texture } from './types';
 import { BLOCK_LOOKS, BLOCK_TOOLS, GLOW, HARDNESS } from './blockPresets';
@@ -58,8 +58,10 @@ export function createItem(kind: ItemKind = 'sword'): ModItem {
     nutrition: 4,
     canAlwaysEat: false,
     stackSize: 64,
+    drawTime: 4,
+    throwPower: 5,
+    projectileKind: 'arrow',
     recipe: { enabled: false, grid: new Array(9).fill(null), count: 1 },
-    ...{},
   };
 }
 
@@ -175,6 +177,9 @@ export function normalizeItem(raw: Partial<ModItem> | undefined): ModItem {
     texture: normalizeTexture(raw?.texture),
     armorSlot: raw?.armorSlot ?? 'chest',
     canAlwaysEat: raw?.canAlwaysEat === true,
+    projectileKind: PROJECTILE_KINDS.some((p) => p.kind === raw?.projectileKind)
+      ? (raw?.projectileKind as ModItem['projectileKind'])
+      : 'arrow',
     recipe: {
       enabled: raw?.recipe?.enabled === true,
       grid: normalizeGrid(raw?.recipe?.grid),

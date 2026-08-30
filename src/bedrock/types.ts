@@ -16,7 +16,19 @@ export interface Texture {
   pixels: (string | null)[];
 }
 
-export type ItemKind = 'sword' | 'pickaxe' | 'axe' | 'shovel' | 'armor' | 'food' | 'plain';
+export type ItemKind =
+  | 'sword'
+  | 'pickaxe'
+  | 'axe'
+  | 'shovel'
+  | 'bow'
+  | 'throwable'
+  | 'armor'
+  | 'food'
+  | 'plain';
+
+/** What flies out of a throwing weapon. */
+export type ProjectileKind = 'arrow' | 'snowball' | 'egg';
 
 export type ArmorSlot = 'head' | 'chest' | 'legs' | 'feet';
 
@@ -53,6 +65,12 @@ export interface ModItem {
   canAlwaysEat: boolean;
   /** Plain items only: how many stack in one inventory slot. */
   stackSize: number;
+  /** Bow only: how long you pull it back before it's at full power. */
+  drawTime: number;
+  /** Throwing weapon only: how hard it flies. */
+  throwPower: number;
+  /** Throwing weapon only: which projectile it becomes in flight. */
+  projectileKind: ProjectileKind;
   recipe: Recipe;
 }
 
