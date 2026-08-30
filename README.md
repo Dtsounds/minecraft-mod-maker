@@ -14,7 +14,8 @@ npm install
 npm run dev        # http://localhost:5173
 npm test           # 122 tests
 npm run build
-npm run sample     # writes a real .mcaddon to sample-output/ for device testing
+npm run sample     # writes a real .mcaddon to sample-output/
+npm run install-local  # installs straight into the live Minecraft world
 ```
 
 ## What's built
@@ -114,31 +115,50 @@ in-memory objects.
 
 ## On-device verification
 
-Import status is tracked here because the structural tests cannot substitute
-for it:
+**Verified working on Minecraft Bedrock v26.45 (internally 1.26.45) on
+2026-08-30.** Custom items appear, render their textures, are edible where
+applicable, and craft from their recipes.
 
-- **2026-08-28** — first on-device import **failed**: "missing one or more
-  dependencies", caused by a circular BP↔RP manifest dependency. Fixed; see
-  *Dependency direction* above.
-- **2026-08-28** — items imported, registered and named correctly but were
-  **invisible**. Two independent causes:
-  1. `minecraft:icon` was written as `{"texture": key}`. That field is
-     documented as *"Deprecated - no longer in use"*; the current shape is
-     `{"textures": {"default": key}}`. An item using the old field loads,
-     registers, and shows its name while rendering nothing at all.
-  2. The resource pack was not activated in the world. Microsoft's docs say
-     activating the behavior pack auto-activates its linked resource pack;
-     in practice it did not, so the onboarding now tells you to switch on
-     both and names the invisible-item symptom explicitly.
-- **Pending** — re-import after the icon fix, and confirmation of textures,
-  edible food, and recipe cropping.
+Getting there took four real bugs and two false trails:
+
+| # | Bug | Symptom | Caught by |
+| --- | --- | --- | --- |
+| 1 | Circular BP<->RP manifest dependency | "missing one or more dependencies" on import | on-device |
+| 2 | `minecraft:icon` used the deprecated `texture` field | items load, register, are named — and render invisible | on-device |
+| 3 | Schema pinned to 1.21.30 against a 1.26.45 client | same invisible-item symptom | on-device |
+| 4 | Test fixtures regenerated UUIDs every build | every import became a NEW pack; the world kept loading an hours-old one | reading the world's own files |
+
+Two false trails, both disproven by testing rather than argument: the PNG
+encoder (a pack icon produced by it rendered fine, so Minecraft reads our
+PNGs), and `minecraft:use_animation` (a control item without it was edible, so
+food already worked).
+
+### The testing loop that actually worked
+
+Handing over `.mcaddon` files to import by hand was the biggest waste of time
+here — not just slow but actively misleading, because bug 4 meant the game
+kept loading a stale pack while newer ones piled up unactivated. Several
+rounds of "still broken" were measuring code that was never running.
+
+```bash
+npm run install-local
+```
+
+writes the generated packs **directly into Minecraft's live world**, clears
+previously injected test packs, and activates them in
+`world_{behavior,resource}_packs.json`. Nothing to import, nothing to switch
+on. It locates `com.mojang` across all three possible layouts — note that the
+standalone Bedrock launcher keeps its data under
+`%APPDATA%/Minecraft Bedrock/Users/<id>/games/com.mojang`, **not** under the
+Microsoft Store package folders, which is why the Store paths all looked empty.
 
 ### What the test suite could not catch
 
-Three separate bugs (circular dependency, deprecated icon field, resource
-pack not activated) all produced output that was internally consistent and
-schema-shaped. The tests verified our own bytes against our own
-understanding, which is worth a lot but is not the same as the game agreeing.
-Where a doc and the game disagreed, the game won every time.
+All four bugs produced output that was internally consistent and schema-shaped,
+so 126 passing tests had nothing to say about any of them. The tests verify our
+bytes against our own understanding, which is worth having and is not the same
+as the game agreeing. Where a doc and the game disagreed the game won every
+time — and where the docs were ambiguous, Mojang's published `bedrock-samples`
+vanilla packs settled it faster than the reference pages did.
 
 Run `npm run sample` and open `sample-output/Ruby_Mod.mcaddon` to test.
