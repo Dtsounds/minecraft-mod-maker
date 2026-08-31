@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ModProject } from '../bedrock/types';
 import { TexturePreview } from '../components/TexturePreview';
+import { describeContents } from '../bedrock/project';
 
 interface Props {
   projects: ModProject[];
@@ -55,7 +56,7 @@ export function HomeScreen({ projects, loading, onNew, onOpen, onDelete }: Props
                   <TexturePreview texture={project.icon} size={72} label={`${project.name} icon`} />
                   <span className="mod-card__name">{project.name}</span>
                   <span className="tiny muted">
-                    {project.items.length === 1 ? '1 item' : `${project.items.length} items`}
+                    {describeContents(project)}
                   </span>
                 </button>
                 {confirmDelete === project.id ? (

@@ -178,6 +178,6 @@ describe('the export bar counts rules', () => {
     );
     await user.click(screen.getByRole('button', { name: /back to my mod/i }));
 
-    expect(screen.getByText(/your mod has 1 thing and 1 rule in it/i)).toBeInTheDocument();
+    expect(screen.getByText(/your mod has 1 item and 1 rule in it/i)).toBeInTheDocument();
   });
 });

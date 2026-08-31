@@ -286,6 +286,32 @@ export function normalizeProject(raw: Partial<ModProject> | undefined): ModProje
   };
 }
 
+/**
+ * Plain-language inventory of a mod — "1 item, 2 creatures and 1 rule".
+ *
+ * Shared, because every place that summarises a mod had been counting a
+ * different subset. The My Mods card counted only `items`, so a kid who made a
+ * creature and went back to the list saw "0 items" and reasonably concluded
+ * their work was gone. That is precisely the anxiety the rest of the app works
+ * to avoid, and it was caused by three independent count expressions rather
+ * than by anyone deciding creatures should not count.
+ */
+export function describeContents(project: ModProject): string {
+  const parts: string[] = [];
+  const add = (n: number, one: string, many: string) => {
+    if (n > 0) parts.push(`${n} ${n === 1 ? one : many}`);
+  };
+
+  add(project.items?.length ?? 0, 'item', 'items');
+  add(project.blocks?.length ?? 0, 'block', 'blocks');
+  add(project.mobs?.length ?? 0, 'creature', 'creatures');
+  add(project.rules?.length ?? 0, 'rule', 'rules');
+
+  if (parts.length === 0) return 'nothing yet';
+  if (parts.length === 1) return parts[0] as string;
+  return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+}
+
 /** Bump the patch number so a re-import replaces the previous copy in-game. */
 export function bumpVersion(project: ModProject): [number, number, number] {
   const [major, minor, patch] = project.version;

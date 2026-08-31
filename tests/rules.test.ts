@@ -8,7 +8,15 @@ import { buildAddon } from '../src/bedrock/pack';
 import { buildBehaviorManifest, isPackDependency } from '../src/bedrock/manifest';
 import { buildRuleTable } from '../src/bedrock/rules';
 import { RUNTIME_MARKER, buildScriptMain } from '../src/bedrock/runtime';
-import { createItem, createMob, createProject, createRule, normalizeProject } from '../src/bedrock/project';
+import {
+  createBlock,
+  createItem,
+  createMob,
+  createProject,
+  createRule,
+  describeContents,
+  normalizeProject,
+} from '../src/bedrock/project';
 import { SCRIPT_ENTRY, SCRIPT_MODULE_VERSION } from '../src/bedrock/versions';
 import { ACTIONS } from '../src/bedrock/rulePresets';
 import type { ModProject, ModRule } from '../src/bedrock/types';
@@ -304,5 +312,42 @@ describe('script layout', () => {
     const constAt = lines.findIndex((l) => l.startsWith('const '));
     expect(importAt).toBeGreaterThanOrEqual(0);
     expect(importAt).toBeLessThan(constAt);
+  });
+});
+
+describe('describeContents', () => {
+  // The My Mods card counted only `items`, so a mod containing one creature
+  // read "0 items" — which looks exactly like losing your work. Three separate
+  // count expressions had drifted apart; this is now the only one.
+  const withCounts = (counts: Partial<Record<'items' | 'blocks' | 'mobs' | 'rules', number>>) => {
+    const p = createProject('Counted', '');
+    p.items = Array.from({ length: counts.items ?? 0 }, () => createItem('plain'));
+    p.blocks = Array.from({ length: counts.blocks ?? 0 }, () => createBlock());
+    p.mobs = Array.from({ length: counts.mobs ?? 0 }, () => createMob());
+    p.rules = Array.from({ length: counts.rules ?? 0 }, () => createRule());
+    return p;
+  };
+
+  it('counts creatures, not just items', () => {
+    expect(describeContents(withCounts({ mobs: 1 }))).toBe('1 creature');
+  });
+
+  it('counts every kind of content together', () => {
+    expect(describeContents(withCounts({ items: 1, blocks: 2, mobs: 1, rules: 3 }))).toBe(
+      '1 item, 2 blocks, 1 creature and 3 rules',
+    );
+  });
+
+  it('singularises each kind independently', () => {
+    expect(describeContents(withCounts({ items: 1, rules: 2 }))).toBe('1 item and 2 rules');
+  });
+
+  it('says something sensible for an empty mod', () => {
+    expect(describeContents(withCounts({}))).toBe('nothing yet');
+  });
+
+  it('survives a project whose arrays predate a schema change', () => {
+    const legacy = { name: 'Old', items: [{}] } as unknown as ModProject;
+    expect(() => describeContents(legacy)).not.toThrow();
   });
 });

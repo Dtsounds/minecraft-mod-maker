@@ -1239,7 +1239,6 @@ code {
   border-left: 3px solid var(--bevel-light);
   border-right: 3px solid var(--bevel-dark);
   border-bottom: 3px solid var(--bevel-dark);
-  text-shadow: 2px 2px 0 #00000059;
   letter-spacing: 0.02em;
 }
 
@@ -1294,7 +1293,6 @@ h3,
 .mod-card__name,
 .kind__label,
 .stepnum {
-  text-shadow: 3px 3px 0 #00000073;
   letter-spacing: 0;
 }
 
@@ -1349,7 +1347,6 @@ canvas {
 
 .btn--ghost {
   color: var(--ink);
-  text-shadow: 2px 2px 0 #00000059;
 }
 
 /* The logo tile becomes a block, not a rounded app icon. */
