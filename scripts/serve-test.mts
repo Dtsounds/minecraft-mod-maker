@@ -171,7 +171,10 @@ function consume(chunk: string): void {
     const benign =
       text.includes('[Sound]') ||
       text.includes('errorMessage=(null)') ||
-      text.includes('Content logging to console');
+      text.includes('Content logging to console') ||
+      // The world persists between runs, so the ticking area is already there
+      // on every run after the first. Expected, not a finding.
+      text.includes('ticking area with the name selftest already exists');
 
     if ((contentError || serverError) && !benign) {
       problems.push(text);
