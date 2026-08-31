@@ -31,7 +31,7 @@ npm run serve-test     # verify against a real dedicated server, no player neede
 | 4 — Export onboarding + My Mods | ✅ verified on-device |
 | 5 — Block creator | ✅ verified on-device |
 | 6 — Mob creator | ✅ verified on-device |
-| 7 — Rules (Script API) | ✅ all 8 actions verified on a real server |
+| 7 — Rules (Script API) | ✅ verified on-device |
 
 ## Before changing Bedrock JSON
 

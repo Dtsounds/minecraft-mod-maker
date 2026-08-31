@@ -1,7 +1,7 @@
 # Bedrock Mod Maker — working notes
 
 Kid-facing web app that generates real Minecraft Bedrock `.mcaddon` files.
-Client-side only. Milestones 0–6 are complete and verified in-game.
+Client-side only. Milestones 0–7 are complete and verified in-game.
 
 ## Read this before touching Bedrock JSON
 

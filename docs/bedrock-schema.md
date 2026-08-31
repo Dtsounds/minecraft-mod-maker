@@ -172,11 +172,32 @@ only craftable from those exact squares.
 Furnace: `minecraft:recipe_furnace` with `input` and `output` as plain strings,
 `tags: ["furnace", "blast_furnace"]`.
 
-## Script API (Phase 4) — RESEARCHED, NOT YET CLIENT-VERIFIED
+⚠️ **`unlock` is REQUIRED since 1.20** on shaped recipes. Without it the recipe
+is rejected outright and never registers:
 
-Everything above this section was confirmed in a live client. This section was
-not. Treat it as a starting hypothesis and move each fact up once it survives
-an `install-local` round.
+```
+[Recipes][error] recipes/x.json | ns:craft_x | 1.20+ Recipes require unlock data
+```
+
+It sits between `key` and `result`, and vanilla unlocks on the recipe's own
+ingredients — Mojang's `diamond_sword.json` uses
+`"unlock": [ { "item": "minecraft:diamond" } ]`. The Learn reference does not
+document the field **at all**; `bedrock-samples` was the only source that had it.
+
+This one is the best argument in this file for reading the content log. Every
+recipe the generator emitted for the first two days was dead on arrival, and
+nothing showed it: the item still existed, still answered `/give`, still had a
+name and a texture. Only the log knew.
+
+⚠️ A recipe with the **same ingredients as a vanilla one** logs a duplicate
+warning and both stay craftable. Harmless, but avoid it in test fixtures —
+diamond+diamond+stick is literally vanilla's diamond sword.
+
+## Script API (Phase 4) — VERIFIED
+
+Confirmed on 2026-08-31 against retail 1.26.45 **and** Bedrock Dedicated Server
+1.26.45.1: packs load, all eight rule actions execute, and every trigger fires
+from real player input.
 
 A script-enabled BP adds a **third module** and a **second kind of dependency**:
 
@@ -203,6 +224,14 @@ Minecraft resolves like npm's `^`: a dependency on `2.0.0` "may actually have
 that dependency fulfilled with" a higher `2.x`. So a **low floor is strictly
 safer than a high one**, which is the opposite of Microsoft's published advice
 (that advice targets marketplace content chasing new APIs — not our case).
+
+Confirmed in the client's own words — this is the promotion happening live:
+
+```
+[Scripting] Plugin Discovered [LocalTest] ModuleId [fbc8b6e5-...]
+[Scripting] Plugin [LocalTest] - promoted [@minecraft/server]
+            from [2.0.0] to [2.9.0] requested by [LocalTest - 1.0.0]
+```
 
 Mapping the module version to the game build, since Learn's table is stale
 (it stops at 1.21.60 and was last touched 2025-07):
