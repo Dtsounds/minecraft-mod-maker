@@ -380,9 +380,19 @@ export function EditorScreen({
         <div className="stack">
           <h2>Ready to play?</h2>
           <p className="muted">
-            {thingCount === 0
+            {thingCount === 0 && rules.length === 0
               ? 'Your mod works even when it’s empty — but it’s more fun with stuff in it!'
-              : `Your mod has ${thingCount === 1 ? '1 thing' : `${thingCount} things`} in it.`}
+              : [
+                  thingCount > 0 ? `${thingCount === 1 ? '1 thing' : `${thingCount} things`}` : null,
+                  // Rules are not "things" you hold, but leaving them out made a
+                  // mod with a rule in it report "1 thing", which reads as though
+                  // the rule had been lost.
+                  rules.length > 0 ? `${rules.length === 1 ? '1 rule' : `${rules.length} rules`}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' and ')
+                  .replace(/^/, 'Your mod has ')
+                  .concat(' in it.')}
           </p>
           {emptyTextures.length > 0 && (
             <p className="warn tiny">

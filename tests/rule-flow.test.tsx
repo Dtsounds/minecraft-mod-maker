@@ -153,3 +153,31 @@ describe('rule creator, driven through the UI', () => {
     expect(main).toContain('"give":"loot_mod:magic_gem"');
   });
 });
+
+describe('the export bar counts rules', () => {
+  let capture: ReturnType<typeof captureDownloads>;
+  beforeEach(async () => {
+    for (const p of await listProjects()) await deleteProject(p.id);
+    capture = captureDownloads();
+  });
+  afterEach(() => capture.restore());
+
+  it('mentions the rule instead of reporting only "1 thing"', async () => {
+    // A mod with an item and a rule used to read "Your mod has 1 thing in it",
+    // which looks like the rule was lost.
+    const user = userEvent.setup();
+    render(<App />);
+    await newMod(user, 'Count Mod');
+    await addItem(user, 'Magic Gem');
+
+    await user.click(screen.getByRole('button', { name: /add a rule/i }));
+    await user.click(
+      within(screen.getByRole('group', { name: /which one/i })).getByRole('button', {
+        name: /magic gem/i,
+      }),
+    );
+    await user.click(screen.getByRole('button', { name: /back to my mod/i }));
+
+    expect(screen.getByText(/your mod has 1 thing and 1 rule in it/i)).toBeInTheDocument();
+  });
+});
