@@ -4,19 +4,6 @@
    least 48px so it works with a finger on a tablet, not just a mouse.
    ------------------------------------------------------------------ */
 
-/* Pixelify Sans, SIL Open Font License 1.1 — see fonts/OFL.txt.
-   Self-hosted deliberately. A <link> to Google Fonts would send every child's
-   IP address to a third party on every load, which would quietly undo the one
-   privacy promise this app makes: nothing leaves the browser. 12KB is a
-   cheaper price than that. */
-@font-face {
-  font-family: 'Pixelify Sans';
-  src: url('./fonts/pixelify-sans.woff2') format('woff2');
-  font-weight: 400 700;
-  font-style: normal;
-  font-display: swap;
-}
-
 :root {
   /* Minecraft's own UI language: deepslate ground, stone-grey panels, and
      accents borrowed from blocks a kid already knows by name. */
@@ -50,10 +37,12 @@
   --tap: 48px;
   --shadow: 0 6px 0 rgba(0, 0, 0, 0.45);
 
-  --font: 'Pixelify Sans', 'Minecraft', ui-monospace, 'Courier New', monospace;
-  /* Long explanatory copy stays in a normal face. Minecraft never shows a
-     paragraph; this app does, and some of its readers are eight. */
-  --font-body: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  /* An ordinary system font, at a size that suits an 8-year-old reading it on
+     a tablet. The pixel face looked the part but cost real legibility, which is
+     the wrong trade for an app whose readers are still learning to read.
+     System stack = no download, no third-party request, no privacy cost. */
+  --font: 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-body: var(--font);
 }
 
 * {
@@ -73,10 +62,8 @@ body {
   background-image: linear-gradient(180deg, #303030 0%, #1c1c1c 100%);
   background-attachment: fixed;
   color: var(--ink);
-  /* Pixel type must NOT be smoothed — antialiasing turns crisp blocks into
-     grey mush, which is the whole reason a pixel font looks wrong on the web. */
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: unset;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overscroll-behavior-y: none;
 }
 
@@ -1306,7 +1293,6 @@ h3,
 .rule-sentence,
 p {
   font-family: var(--font-body);
-  -webkit-font-smoothing: antialiased;
   text-shadow: none;
 }
 
@@ -1428,4 +1414,28 @@ canvas {
 .ok {
   color: var(--grass);
   font-weight: 700;
+}
+
+/* --- Bigger type -----------------------------------------------------------
+   Everything below scales from the root, so one number moves the whole app.
+   18px base rather than 16: the audience is 8-14, often on a tablet at arm's
+   length, and several of them are not fluent readers yet. */
+html {
+  font-size: 18px;
+}
+
+body {
+  line-height: 1.5;
+}
+
+.tiny {
+  font-size: 0.9rem;
+}
+
+.field__hint {
+  font-size: 0.95rem;
+}
+
+.kind__blurb {
+  font-size: 0.92rem;
 }

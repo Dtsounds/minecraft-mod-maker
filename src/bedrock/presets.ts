@@ -18,7 +18,8 @@ export type SliderKey =
   | 'nutrition'
   | 'stackSize'
   | 'drawTime'
-  | 'throwPower';
+  | 'throwPower'
+  | 'enchantability';
 
 export interface SliderSpec {
   key: SliderKey;
@@ -77,6 +78,22 @@ const DIG_SPEED: SliderSpec = {
   hint: 'How fast it breaks blocks.',
   min: 1,
   max: 20,
+  step: 1,
+};
+
+/**
+ * Enchantability, in words a kid can act on.
+ *
+ * Without minecraft:enchantable an item cannot be enchanted AT ALL — no
+ * enchanting table, no anvil, nothing — while every vanilla equivalent can.
+ * That is what "my sword has no magic powers" actually meant.
+ */
+const MAGIC: SliderSpec = {
+  key: 'enchantability',
+  label: 'How magical it is',
+  hint: 'Higher means better enchantments at the enchanting table.',
+  min: 0,
+  max: 25,
   step: 1,
 };
 
@@ -146,35 +163,35 @@ export const ITEM_PRESETS: Record<ItemKind, ItemPreset> = {
     label: 'Sword',
     emoji: '⚔️',
     blurb: 'For fighting mobs.',
-    sliders: [POWER, DURABILITY],
+    sliders: [POWER, DURABILITY, MAGIC],
   },
   pickaxe: {
     kind: 'pickaxe',
     label: 'Pickaxe',
     emoji: '⛏️',
     blurb: 'For mining stone and ores.',
-    sliders: [POWER, DURABILITY, DIG_SPEED],
+    sliders: [POWER, DURABILITY, DIG_SPEED, MAGIC],
   },
   axe: {
     kind: 'axe',
     label: 'Axe',
     emoji: '🪓',
     blurb: 'For chopping wood.',
-    sliders: [POWER, DURABILITY, DIG_SPEED],
+    sliders: [POWER, DURABILITY, DIG_SPEED, MAGIC],
   },
   shovel: {
     kind: 'shovel',
     label: 'Shovel',
     emoji: '🥄',
     blurb: 'For digging dirt and sand.',
-    sliders: [POWER, DURABILITY, DIG_SPEED],
+    sliders: [POWER, DURABILITY, DIG_SPEED, MAGIC],
   },
   bow: {
     kind: 'bow',
     label: 'Bow',
     emoji: '🏹',
     blurb: 'Shoots arrows from far away.',
-    sliders: [DRAW_TIME, DURABILITY],
+    sliders: [DRAW_TIME, DURABILITY, MAGIC],
   },
   throwable: {
     kind: 'throwable',
@@ -199,6 +216,7 @@ export const ITEM_PRESETS: Record<ItemKind, ItemPreset> = {
         step: 1,
       },
       DURABILITY,
+      MAGIC,
     ],
     hasArmorSlotPicker: true,
   },

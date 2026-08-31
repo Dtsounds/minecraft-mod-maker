@@ -67,6 +67,8 @@ export function createItem(kind: ItemKind = 'sword'): ModItem {
     power: 5,
     durability: 250,
     digSpeed: 6,
+    enchantability: 14, // iron-ish: a sensible middle
+
     armorSlot: 'chest',
     protection: 5,
     nutrition: 4,

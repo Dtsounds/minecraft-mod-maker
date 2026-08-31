@@ -277,3 +277,50 @@ describe('throwing weapon preset', () => {
     }
   });
 });
+
+describe('enchantability (regression: nothing could be enchanted)', () => {
+  // A custom sword had no minecraft:enchantable at all, so it could not be
+  // enchanted at a table, on an anvil, or with a book — while every vanilla
+  // equivalent could, with nothing in-game explaining why.
+  const build = (over: Partial<ModItem>) =>
+    buildItemJson('rubymod', { ...createItem('sword'), name: 'Ruby Sword', ...over })[
+      'minecraft:item'
+    ].components as Record<string, { slot?: string; value?: number }>;
+
+  it('makes a sword enchantable', () => {
+    expect(build({})['minecraft:enchantable']).toEqual({ slot: 'sword', value: 14 });
+  });
+
+  it('gives each tool its own enchantment family', () => {
+    for (const [kind, slot] of [
+      ['pickaxe', 'pickaxe'],
+      ['axe', 'axe'],
+      ['shovel', 'shovel'],
+      ['bow', 'bow'],
+    ] as const) {
+      expect(build({ kind })['minecraft:enchantable']?.slot).toBe(slot);
+    }
+  });
+
+  it('maps a chestplate to armor_TORSO, not armor_chest', () => {
+    // The wearable slot for the same piece is `slot.armor.chest`. Two
+    // vocabularies for one concept, one component apart.
+    expect(build({ kind: 'armor', armorSlot: 'chest' })['minecraft:enchantable']?.slot).toBe(
+      'armor_torso',
+    );
+    expect(build({ kind: 'armor', armorSlot: 'head' })['minecraft:enchantable']?.slot).toBe(
+      'armor_head',
+    );
+  });
+
+  it('clamps a hand-edited value instead of trusting it', () => {
+    expect(build({ enchantability: 9999 })['minecraft:enchantable']?.value).toBe(25);
+    expect(build({ enchantability: Number.NaN })['minecraft:enchantable']?.value).toBe(0);
+  });
+
+  it('leaves the component off things that cannot be enchanted', () => {
+    for (const kind of ['food', 'plain', 'throwable'] as const) {
+      expect(build({ kind })['minecraft:enchantable']).toBeUndefined();
+    }
+  });
+});

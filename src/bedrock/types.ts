@@ -55,6 +55,12 @@ export interface ModItem {
   durability: number;
   /** Mining speed multiplier for pickaxe/axe/shovel. */
   digSpeed: number;
+  /**
+   * How readily the item takes enchantments — vanilla calls this
+   * enchantability. Higher means better enchantments for fewer levels
+   * (gold 22, wood 15, iron 14, diamond 10, stone 5).
+   */
+  enchantability: number;
   /** Armor only. */
   armorSlot: ArmorSlot;
   /** Armor points. Armor only. */

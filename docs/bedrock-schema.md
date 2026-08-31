@@ -90,6 +90,24 @@ the bow is silently inert in Creative.
 
 `menu_category.category` ∈ `construction | equipment | items | nature | none`.
 
+⚠️ **Without `minecraft:enchantable` an item cannot be enchanted AT ALL** — not
+at a table, not on an anvil, not with a book — while every vanilla equivalent
+can. Nothing in game explains the refusal. Needs `format_version` ≥ 1.20.30.
+
+```json
+"minecraft:enchantable": { "slot": "sword", "value": 14 }
+```
+
+`slot` ∈ `none|all|g_armor|armor_head|armor_torso|armor_feet|armor_legs|sword|
+bow|spear|crossbow|melee_spear|g_tool|hoe|shears|flintsteel|shield|g_digging|
+axe|pickaxe|shovel|fishing_rod|carrot_stick|elytra|cosmetic_head`.
+
+⚠️ **A chestplate is `armor_torso` here but `slot.armor.chest` in
+`minecraft:wearable`.** Two vocabularies for one concept, one component apart.
+
+`value` is vanilla enchantability: gold 22, wood 15, iron 14, diamond 10,
+stone 5. Higher means better enchantments for fewer levels.
+
 Armor slots: `slot.armor.head|chest|legs|feet`, `slot.weapon.offhand`.
 
 Digger tags: `minecraft:is_{pickaxe,axe,shovel}_item_destructible`.

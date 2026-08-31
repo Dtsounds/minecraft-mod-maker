@@ -9,6 +9,7 @@ import {
   armorSlotSpec,
   projectileSpec,
 } from './presets';
+import type { SliderKey } from './presets';
 import type { ItemKind, ModItem } from './types';
 
 export interface ItemJson {
@@ -43,7 +44,10 @@ function menuCategory(kind: ItemKind): { category: string; group?: string } {
 /** Read a slider value back through its preset's clamp. Never trusts input. */
 export function clampedSlider(
   item: ModItem,
-  key: 'power' | 'durability' | 'digSpeed' | 'protection' | 'nutrition' | 'stackSize' | 'drawTime' | 'throwPower',
+  // SliderKey rather than a copy of it: this union had already drifted out of
+  // step with the presets once, which is how a new slider can silently fail to
+  // reach the generated JSON.
+  key: SliderKey,
 ): number {
   const spec = ITEM_PRESETS[item.kind].sliders.find((s) => s.key === key);
   const raw = item[key];
@@ -95,6 +99,46 @@ export function buildItemJson(namespace: string, item: ModItem): ItemJson {
 
   const isTool = TOOL_KINDS.includes(item.kind);
   const isDigger = DIGGER_KINDS.includes(item.kind);
+
+  /**
+   * Which enchantment family this item belongs to.
+   *
+   * ⚠️ Armor uses `armor_torso`, NOT `armor_chest` — and the wearable slot for
+   * the same piece is `slot.armor.chest`. Two different vocabularies for one
+   * concept, one component apart.
+   */
+  const ENCHANT_SLOT: Partial<Record<ItemKind, string>> = {
+    sword: 'sword',
+    pickaxe: 'pickaxe',
+    axe: 'axe',
+    shovel: 'shovel',
+    bow: 'bow',
+  };
+
+  const enchantSlot =
+    item.kind === 'armor'
+      ? {
+          head: 'armor_head',
+          chest: 'armor_torso',
+          legs: 'armor_legs',
+          feet: 'armor_feet',
+        }[ARMOR_SLOTS.some((s) => s.slot === item.armorSlot) ? item.armorSlot : 'chest']
+      : ENCHANT_SLOT[item.kind];
+
+  /**
+   * Without this an item cannot be enchanted at all — not at a table, not on
+   * an anvil, not with a book — while every vanilla equivalent can. A kid who
+   * makes a sword and takes it to an enchanting table finds it simply refused,
+   * with nothing to explain why.
+   *
+   * Requires format_version >= 1.20.30; we ship 1.26.40.
+   */
+  if (enchantSlot) {
+    components['minecraft:enchantable'] = {
+      slot: enchantSlot,
+      value: clampedSlider(item, 'enchantability'),
+    };
+  }
 
   if (isTool) {
     components['minecraft:max_stack_size'] = 1;
