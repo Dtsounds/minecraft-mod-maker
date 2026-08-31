@@ -8,10 +8,18 @@ import { BlockScreen } from './screens/BlockScreen';
 import { MobScreen } from './screens/MobScreen';
 import { RuleScreen } from './screens/RuleScreen';
 import { ExportScreen } from './screens/ExportScreen';
-import { deleteProject, listProjects, saveProject } from './storage/db';
+import { deleteProject, listProjects, loadProject, saveProject } from './storage/db';
 import { useAutosave } from './storage/useAutosave';
 import { createProject, createItem, createBlock, createMob, createRule, bumpVersion } from './bedrock/project';
-import { exportProject } from './bedrock/package';
+import { exportProject, downloadBlob } from './bedrock/package';
+import {
+  backupFileName,
+  parseBackup,
+  readFileText,
+  requestPersistentStorage,
+  serializeBackup,
+} from './storage/backup';
+import { uuid } from './bedrock/ids';
 import type { ModBlock, ModItem, ModMob, ModProject, ModRule } from './bedrock/types';
 
 type Screen =
@@ -53,6 +61,9 @@ export default function App() {
 
   useEffect(() => {
     void refresh();
+    // Ask the browser not to evict a kid’s mods under disk pressure. Fire and
+    // forget: a refusal changes nothing they can act on.
+    void requestPersistentStorage();
   }, [refresh]);
 
   /** Every project mutation goes through here so updatedAt stays honest. */
@@ -107,6 +118,72 @@ export default function App() {
       void refresh();
     },
     [refresh],
+  );
+
+  /**
+   * Save a mod to a file.
+   *
+   * Takes the freshest copy that exists, which is NOT the one in the list.
+   * `projects` is a snapshot from the last `listProjects()`, and autosave is
+   * debounced — so a kid who adds a creature and immediately taps My Mods and
+   * then 💾 could otherwise get a file with the creature missing. Silently
+   * writing a stale backup is the one failure this whole feature exists to
+   * prevent, so: the open project in memory wins, then storage, then the list.
+   */
+  const handleBackup = useCallback(
+    async (target: ModProject) => {
+      let freshest = target;
+      if (project && project.id === target.id) {
+        freshest = project;
+      } else {
+        const stored = await loadProject(target.id);
+        if (stored) freshest = stored;
+      }
+      const blob = new Blob([serializeBackup(freshest)], { type: 'application/json' });
+      downloadBlob(blob, backupFileName(freshest));
+    },
+    [project],
+  );
+
+  /**
+   * Restore a mod from a file.
+   *
+   * A restored mod always becomes a NEW project, never an overwrite. The
+   * common case — a new computer, or storage that got cleared — has nothing to
+   * collide with, and in the case that does collide, silently replacing a mod
+   * a kid has kept working on would destroy exactly the work this feature
+   * exists to protect. A duplicate is easy to delete; lost work is not.
+   *
+   * The pack UUIDs are re-minted for that copy, because two projects sharing
+   * pack identity would fight over the same add-on inside Minecraft, each
+   * export overwriting the other's.
+   */
+  const handleRestore = useCallback(
+    async (file: File): Promise<string> => {
+      const restored = parseBackup(await readFileText(file));
+      const clash = projects.some((p) => p.id === restored.id);
+
+      const project: ModProject = clash
+        ? {
+            ...restored,
+            id: uuid(),
+            name: `${restored.name} copy`,
+            uuids: {
+              bpHeader: uuid(),
+              bpModule: uuid(),
+              rpHeader: uuid(),
+              rpModule: uuid(),
+              bpScript: uuid(),
+            },
+            updatedAt: Date.now(),
+          }
+        : restored;
+
+      await saveProject(project);
+      await refresh();
+      return project.name;
+    },
+    [projects, refresh],
   );
 
   const handleAddItem = useCallback(() => {
@@ -223,6 +300,8 @@ export default function App() {
               setScreen({ name: 'editor' });
             }}
             onDelete={handleDeleteProject}
+            onBackup={handleBackup}
+            onRestore={handleRestore}
           />
         )}
 

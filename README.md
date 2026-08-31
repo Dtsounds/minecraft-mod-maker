@@ -5,7 +5,9 @@ Minecraft **Bedrock Edition** add-ons — no JSON, no code — and downloads a
 working `.mcaddon` they can open on their device to play with.
 
 Everything runs client-side. There is no backend, no account, and nothing
-leaves the browser; projects autosave to IndexedDB.
+leaves the browser — not even a font. Projects autosave to IndexedDB, can be
+saved to a file and opened back up, and the app installs as a PWA and runs
+offline.
 
 ## Running it
 
@@ -17,6 +19,7 @@ npm run build
 npm run sample     # writes a real .mcaddon to sample-output/
 npm run install-local  # installs straight into the live Minecraft world
 npm run check-log      # what Minecraft itself said about the packs, last launch
+npm run make-icons     # regenerate the PWA icons
 npm run serve-test     # verify against a real dedicated server, no player needed
 ```
 

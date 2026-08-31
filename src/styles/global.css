@@ -1417,3 +1417,15 @@ canvas {
 .warn {
   color: var(--gold);
 }
+
+/* The 💾 save-to-file control sits beside the delete control on a mod card. */
+.mod-card__save {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+}
+
+.ok {
+  color: var(--grass);
+  font-weight: 700;
+}

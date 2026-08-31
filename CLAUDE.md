@@ -162,7 +162,7 @@ do not use.
 
 ## Testing
 
-`npm test` — 233 tests. `npm run build`, `npx tsc -b --noEmit`.
+`npm test` — 251 tests. `npm run build`, `npx tsc -b --noEmit`.
 
 The suite verifies our bytes against our own understanding, which is *not* the
 same as the game agreeing: it passed cleanly through four real on-device bugs.
