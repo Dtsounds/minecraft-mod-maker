@@ -36,6 +36,16 @@ npm run serve-test     # verify against a real dedicated server, no player neede
 | 6 — Mob creator | ✅ verified on-device |
 | 7 — Rules (Script API) | ✅ verified on-device |
 
+## Hosting it
+
+Static site, no backend. Every push to `master` builds and publishes to GitHub
+Pages via `.github/workflows/deploy.yml` (typecheck and tests gate the deploy).
+
+Serving from a subpath — which is what Pages does,
+`username.github.io/<repo>/` — is the case that breaks PWAs, so it is worth
+re-checking after any change to the service worker or the manifest. Everything
+resolves against the registration scope rather than the domain root.
+
 ## Before changing Bedrock JSON
 
 `docs/bedrock-schema.md` is a cheat sheet of every schema fact already verified

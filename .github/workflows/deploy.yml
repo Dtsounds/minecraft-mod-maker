@@ -1,0 +1,56 @@
+# Publish the app to GitHub Pages on every push to the default branch.
+#
+# The site is entirely static — no backend, no secrets, no build-time API keys —
+# so this is a plain build-and-upload with nothing to configure.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+# Pages deployment needs these; the default token has neither.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race. Queue rather than cancel, so a push that lands
+# during a deploy still ends up published rather than being dropped.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Publishing a build that fails its own tests would be silly, and this is
+      # the last gate before it reaches a child's browser.
+      - run: npx tsc -b --noEmit
+      - run: npm test -- --run
+
+      - run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
