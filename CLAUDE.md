@@ -154,6 +154,11 @@ do not use.
 - No raw JSON or code exposed in the UI. No login, no backend, nothing leaves
   the browser.
 - Ask before adding a dependency that sends data off the machine.
+- **No external requests at runtime, fonts included.** The app loads zero
+  third-party resources. A Google Fonts `<link>` would send every child's IP
+  address to a third party on every load, quietly undoing the one privacy
+  promise the project makes. The pixel font is self-hosted in
+  `src/styles/fonts/` (12KB, SIL OFL, license shipped alongside).
 
 ## Testing
 
