@@ -190,7 +190,11 @@ if (!live) {
 console.log(`\nInstalling into the most recently used one:\n  ${live}\n`);
 
 // banner: makes the one on-device check decisive (see the rules block above).
-const addon = buildAddon(project, { banner: 'LocalTest', selfTest: true });
+// No selfTest here: it targets the player when one is present, so it would
+// strike Dave with lightning, explode at his feet and set him alight on every
+// world load. `npm run serve-test` covers all eight actions headlessly, which
+// is what that block was for.
+const addon = buildAddon(project, { banner: 'LocalTest' });
 await install(live, addon);
 
 // Inject into the most recently played world and activate it there. The dev
