@@ -1,5 +1,7 @@
 # Bedrock Mod Maker
 
+**Live: https://dtsounds.github.io/minecraft-mod-maker/**
+
 A browser app where a kid (roughly 8–14, non-programmer) visually creates real
 Minecraft **Bedrock Edition** add-ons — no JSON, no code — and downloads a
 working `.mcaddon` they can open on their device to play with.
@@ -35,6 +37,7 @@ npm run serve-test     # verify against a real dedicated server, no player neede
 | 5 — Block creator | ✅ verified on-device |
 | 6 — Mob creator | ✅ verified on-device |
 | 7 — Rules (Script API) | ✅ verified on-device |
+| 8 — Save/open mods as files; installable + offline | ✅ verified on the live site |
 
 ## Hosting it
 

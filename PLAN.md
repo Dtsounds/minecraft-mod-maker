@@ -1,5 +1,65 @@
 # Bedrock Mod Maker — Project Plan
 
+> ## Where this actually stands — 31 August 2026
+>
+> **Live at https://dtsounds.github.io/minecraft-mod-maker/** — pushed to
+> GitHub Pages automatically on every commit to `master`.
+>
+> **Phases 1–4 are built and verified in the real game.** Items, blocks,
+> creatures, recipes and rules all work on-device. 251 tests, and the sections
+> below are the original plan, kept for the reasoning — read this box for what
+> is actually true.
+>
+> **Phase 4 shipped as a rule builder, not Blockly.** "When [trigger] → do
+> [action]", six triggers and eight actions, built from presets like every
+> other creator. The deciding argument was this project's own non-negotiable:
+> every add-on must be valid for *any* input. A general block workspace can
+> express infinitely many programs, plenty of which throw at runtime — and a
+> Bedrock script error is *silent*, visible only in the content log. A closed
+> vocabulary can be checked exhaustively. The rule model is a strict subset of
+> blocks, so **Blockly remains open as an advanced mode** on top of it.
+>
+> **Beyond the original plan**, the app now also:
+> - saves a mod to a `.modmaker.json` file and opens it back up
+> - installs as a PWA and runs with no network
+> - requests persistent storage, so mods are not evicted as cache
+>
+> Section 4 below says "no backend needed for v1–v3 (avoids hosting costs)".
+> Still true: it is hosted, but it is *static* hosting. There is no backend, no
+> account, and nothing about a child leaves their browser — not even a font,
+> which is why the pixel font is self-hosted rather than linked from Google.
+>
+> ### What changed about how we verify things
+>
+> The single most useful lesson of this build: **`npm test` was green through
+> every real bug.** It verifies our bytes against our own understanding of the
+> schema, which is exactly the thing that was wrong. Two tools now close that
+> gap, and `CLAUDE.md` has the detail:
+>
+> - `npm run check-log` — reads what Minecraft itself said about the packs on
+>   its last launch. This is how we found that **every crafting recipe the app
+>   had ever generated was rejected at load**, for two days, while the suite
+>   stayed green and the mod looked fine.
+> - `npm run serve-test` — runs the packs against a real Bedrock Dedicated
+>   Server with nobody playing, and reports on all eight rule actions.
+>
+> ### Genuinely next, roughly in order of value
+>
+> 1. **Block sounds.** The content log says `No sound found for block type
+>    'normal'` — custom blocks are silent to walk on and break. Small, real.
+> 2. **More triggers and actions.** Cheap and additive now the machinery exists;
+>    add a preset, not packaging code.
+> 3. **Shrink backup files.** ~80KB per creature, because textures serialise as
+>    one hex string per pixel. Fine until a kid has twenty mods.
+> 4. **Blockly as an advanced mode**, if rules start to feel limiting.
+> 5. **A desktop build (Tauri)** — but only to kill the `.mcaddon` import dance
+>    by writing straight into Minecraft's folder, which is the one thing a
+>    browser cannot do. `scripts/install-local.mts` already does exactly that.
+>    Not for storage; storage is solved. Costs code signing, installers, and
+>    the school-Chromebook story.
+> 6. **Phase 5** (accounts, cloud save, sharing) — the first thing that would
+>    put a backend and children's data in scope. Weigh that carefully.
+
 ## 1. Concept
 
 A web app where a kid can create real Minecraft **Bedrock Edition** add-ons
