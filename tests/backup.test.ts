@@ -8,6 +8,8 @@ import {
   serializeBackup,
 } from '../src/storage/backup';
 import { createItem, createMob, createProject, createRule } from '../src/bedrock/project';
+import { starterMobTexture } from '../src/components/mobStarter';
+import { mobRig } from '../src/bedrock/mobGeometry';
 import type { ModProject } from '../src/bedrock/types';
 
 function fullProject(): ModProject {
@@ -66,6 +68,45 @@ describe('backup files', () => {
     expect(restored.name).toBe('Half Eaten');
     expect(restored.items[0]?.kind).toBe('plain');
     expect(restored.mobs).toEqual([]);
+  });
+
+  it('keeps every pixel through a save and an open', () => {
+    const original = fullProject();
+    original.mobs[0]!.texture = starterMobTexture(mobRig('quadruped'));
+    const restored = parseBackup(serializeBackup(original));
+    expect(restored.mobs[0]?.texture).toEqual(original.mobs[0]?.texture);
+  });
+
+  it('does not spend 50KB on one creature skin', () => {
+    // Textures used to serialise as one hex string per pixel, so a single
+    // 64x64 skin cost ~50KB of a kid's Downloads folder. See `textureCodec`.
+    const project = fullProject();
+    project.mobs[0]!.texture = starterMobTexture(mobRig('quadruped'));
+    expect(serializeBackup(project).length).toBeLessThan(20_000);
+  });
+
+  it('still opens a file saved before textures were packed', () => {
+    // Format 1 wrote every pixel out longhand. Those files are on real
+    // machines and must keep working.
+    const legacy = {
+      format: 1,
+      app: 'bedrock-mod-maker',
+      savedAt: 0,
+      project: {
+        ...fullProject(),
+        items: [
+          {
+            ...createItem('sword'),
+            name: 'Old Sword',
+            texture: { size: 16, pixels: new Array(256).fill(null).map((_, i) => (i < 8 ? '#ff0000' : null)) },
+          },
+        ],
+      },
+    };
+    const restored = parseBackup(JSON.stringify(legacy));
+    expect(restored.items[0]?.name).toBe('Old Sword');
+    expect(restored.items[0]?.texture.pixels[0]).toBe('#ff0000');
+    expect(restored.items[0]?.texture.pixels[8]).toBeNull();
   });
 
   it('produces a file a human can read', () => {

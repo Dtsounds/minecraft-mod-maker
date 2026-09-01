@@ -16,15 +16,28 @@
 import type { ModProject } from '../bedrock/types';
 import { normalizeProject } from '../bedrock/project';
 import { toPackFolderName } from '../bedrock/ids';
+import { packTextures, unpackTextures } from './textureCodec';
 
-/** Bumped only if the shape changes in a way `normalizeProject` cannot repair. */
-export const BACKUP_FORMAT = 1;
+/**
+ * Bumped only if the shape changes in a way `normalizeProject` cannot repair.
+ *
+ * 2 packs textures as a palette plus a run-length string (see `textureCodec`),
+ * which an older build would read as a texture with no pixels — a blank
+ * canvas, silently. That is exactly the "update this one first" case below,
+ * and the only reason this number moved. Format 1 files still open here.
+ */
+export const BACKUP_FORMAT = 2;
 
 export interface BackupFile {
   format: number;
   app: 'bedrock-mod-maker';
   savedAt: number;
-  project: ModProject;
+  /**
+   * The project — but with every texture packed, so this is deliberately not
+   * `ModProject`. `parseBackup` is the only thing that should read it, and it
+   * hands the result to `unpackTextures` before anything else sees it.
+   */
+  project: unknown;
 }
 
 export const BACKUP_EXTENSION = '.modmaker.json';
@@ -40,7 +53,7 @@ export function serializeBackup(project: ModProject): string {
     format: BACKUP_FORMAT,
     app: 'bedrock-mod-maker',
     savedAt: Date.now(),
-    project,
+    project: packTextures(project),
   };
   return `${JSON.stringify(payload, null, 2)}\n`;
 }
@@ -88,7 +101,9 @@ export function parseBackup(text: string): ModProject {
     );
   }
 
-  return normalizeProject(candidate as Partial<ModProject>);
+  // Unpack before normalising: `normalizeProject` knows only the plain
+  // one-entry-per-pixel shape, and would read a packed texture as blank.
+  return normalizeProject(unpackTextures(candidate) as Partial<ModProject>);
 }
 
 /**

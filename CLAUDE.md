@@ -130,6 +130,15 @@ declare their own sliders with min/max. The UI draws from them **and** the
 generator clamps against them, so the two cannot drift. Add new content types
 by adding a preset, not by touching packaging.
 
+### Textures are packed at the file boundary, not in the app
+
+`src/storage/textureCodec.ts` writes a texture into a `.modmaker.json` as a
+palette plus a run-length string. Nothing else in the app sees that shape: the
+pixel editor, the generator and every test keep the plain one-entry-per-pixel
+array. `parseBackup` unpacks *before* `normalizeProject`, because
+`normalizeProject` knows only the plain shape and would silently read a packed
+texture as a blank canvas — which is also why `BACKUP_FORMAT` moved to 2.
+
 ### Rules ship data, never generated code
 
 `runtime.ts` holds `scripts/main.js` as a **constant** — byte-identical in
@@ -162,7 +171,7 @@ do not use.
 
 ## Testing
 
-`npm test` — 251 tests. `npm run build`, `npx tsc -b --noEmit`.
+`npm test` — 271 tests. `npm run build`, `npx tsc -b --noEmit`.
 
 The suite verifies our bytes against our own understanding, which is *not* the
 same as the game agreeing: it passed cleanly through four real on-device bugs.

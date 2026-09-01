@@ -6,9 +6,9 @@
 > GitHub Pages automatically on every commit to `master`.
 >
 > **Phases 1–4 are built and verified in the real game.** Items, blocks,
-> creatures, recipes and rules all work on-device. 251 tests, and the sections
+> creatures, recipes and rules all work on-device. The sections
 > below are the original plan, kept for the reasoning — read this box for what
-> is actually true.
+> is actually true. 271 tests.
 >
 > **Phase 4 shipped as a rule builder, not Blockly.** "When [trigger] → do
 > [action]", six triggers and eight actions, built from presets like every
@@ -43,14 +43,23 @@
 > - `npm run serve-test` — runs the packs against a real Bedrock Dedicated
 >   Server with nobody playing, and reports on all eight rule actions.
 >
+> ### Done since
+>
+> - **Backup files shrunk ~22x.** A saved texture is now a palette plus a
+>   run-length string rather than one hex string per pixel, so the on-device
+>   test mod's `.modmaker.json` went from 353KB to 16KB and a 64x64 creature
+>   skin from ~50KB to ~2KB. `src/storage/textureCodec.ts`; the app's own state
+>   and the generated `.mcaddon` bytes are untouched, and format-1 files still
+>   open.
+>
 > ### Genuinely next, roughly in order of value
 >
 > 1. **Block sounds.** The content log says `No sound found for block type
 >    'normal'` — custom blocks are silent to walk on and break. Small, real.
 > 2. **More triggers and actions.** Cheap and additive now the machinery exists;
 >    add a preset, not packaging code.
-> 3. **Shrink backup files.** ~80KB per creature, because textures serialise as
->    one hex string per pixel. Fine until a kid has twenty mods.
+> 3. **Pack textures in IndexedDB too**, the same way. Autosave is where a kid's
+>    twenty mods actually live, and storage pressure is what eviction follows.
 > 4. **Blockly as an advanced mode**, if rules start to feel limiting.
 > 5. **A desktop build (Tauri)** — but only to kill the `.mcaddon` import dance
 >    by writing straight into Minecraft's folder, which is the one thing a

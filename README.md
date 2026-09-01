@@ -16,7 +16,7 @@ offline.
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 233 tests
+npm test           # 271 tests
 npm run build
 npm run sample     # writes a real .mcaddon to sample-output/
 npm run install-local  # installs straight into the live Minecraft world
@@ -165,6 +165,7 @@ tests/png            PNG encoding, texture normalisation and resampling
 tests/storage        IndexedDB round-trips and graceful degradation
 tests/manifest       manifest shape and BP↔RP linkage
 tests/packaging      zips, unzips, and validates the archive as Minecraft reads it
+tests/texture-codec  packing textures for a saved file, and unpacking junk
 tests/pixel-tools    drawing operations as pure functions
 tests/pixel-editor   the editor driven through its real UI
 tests/item           item JSON per preset, plus clamping of absurd values
