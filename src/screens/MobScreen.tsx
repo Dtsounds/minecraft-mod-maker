@@ -10,6 +10,8 @@ import {
   MOB_SPEED,
 } from '../bedrock/mobPresets';
 import { MOB_RIGS, mobRig } from '../bedrock/mobGeometry';
+import { rigUvMap } from '../bedrock/mobUv';
+import { MobPreview } from '../components/MobPreview';
 import { Slider } from '../components/Slider';
 import { TexturePreview } from '../components/TexturePreview';
 import { PixelEditor } from '../components/PixelEditor/PixelEditor';
@@ -38,9 +40,11 @@ const STEPS: { id: Step; label: string; emoji: string }[] = [
 export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
   const [step, setStep] = useState<Step>('basics');
   const [drawing, setDrawing] = useState(false);
+  const [focus, setFocus] = useState<string | null>(null);
 
   const patch = (changes: Partial<ModMob>) => onChange({ ...mob, ...changes });
   const rig = mobRig(mob.rig);
+  const uv = rigUvMap(rig);
   const drop: MobDrop = mob.drop ?? { kind: 'nothing' };
 
   if (drawing) {
@@ -50,6 +54,36 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
           texture={mob.texture}
           title={`Draw ${mob.name || 'your creature'}`}
           allowResize={false}
+          guide={{ used: uv.used, areas: uv.areas, focus }}
+          sidebar={(texture) => (
+            <div className="stack">
+              <MobPreview texture={texture} rig={rig} size={200} />
+              <div className="stack">
+                <span className="field__label">Show me the…</span>
+                <div className="part-row" role="group" aria-label="Which part to paint">
+                  <button
+                    className={`tool ${focus === null ? 'tool--on' : ''}`}
+                    aria-pressed={focus === null}
+                    onClick={() => setFocus(null)}
+                  >
+                    <span aria-hidden>✨</span>
+                    <span className="tiny">All</span>
+                  </button>
+                  {uv.parts.map((part) => (
+                    <button
+                      key={part.id}
+                      className={`tool ${focus === part.id ? 'tool--on' : ''}`}
+                      aria-pressed={focus === part.id}
+                      onClick={() => setFocus(focus === part.id ? null : part.id)}
+                    >
+                      <span aria-hidden>{part.emoji}</span>
+                      <span className="tiny">{part.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           onCancel={() => setDrawing(false)}
           onSave={(texture) => {
             patch({ texture });
@@ -146,7 +180,7 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
         <div className="card stack">
           <h2>What does it look like?</h2>
           <div className="row">
-            <TexturePreview texture={mob.texture} size={160} label="Creature skin" />
+            <MobPreview texture={mob.texture} rig={rig} size={190} label="Your creature, in 3D" />
             <div className="stack">
               <button className="btn btn--big" onClick={() => setDrawing(true)}>
                 ✏️ Paint its skin
@@ -161,10 +195,11 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
                 <p className="warn tiny">⚠️ Its skin is blank — it’ll be invisible!</p>
               )}
               <p className="tiny muted">
-                The skin is one flat picture that wraps around the body. The coloured blocks show
-                which bit is the head, body and legs.
+                This is exactly how it will look in the game. When you paint, the picture shows
+                which square is the head, the body and the legs.
               </p>
             </div>
+            <TexturePreview texture={mob.texture} size={120} label="Creature skin, flat" />
           </div>
 
           <div className="row">

@@ -8,7 +8,7 @@
 > **Phases 1–4 are built and verified in the real game.** Items, blocks,
 > creatures, recipes and rules all work on-device. The sections
 > below are the original plan, kept for the reasoning — read this box for what
-> is actually true. 271 tests.
+> is actually true. 289 tests.
 >
 > **Phase 4 shipped as a rule builder, not Blockly.** "When [trigger] → do
 > [action]", six triggers and eight actions, built from presets like every
@@ -45,6 +45,11 @@
 >
 > ### Done since
 >
+> - **Painting a creature is no longer guesswork.** The skin canvas now shows
+>   which rectangle is which part and which face, greys out the two thirds of
+>   it that map onto nothing, lets a kid paint one part at a time, and shows
+>   the assembled creature in 3D beside the grid, updating as they paint. All
+>   of it derived from the rig by `src/bedrock/mobUv.ts`.
 > - **Backup files shrunk ~22x.** A saved texture is now a palette plus a
 >   run-length string rather than one hex string per pixel, so the on-device
 >   test mod's `.modmaker.json` went from 353KB to 16KB and a 64x64 creature
@@ -56,6 +61,10 @@
 >
 > 1. **Block sounds.** The content log says `No sound found for block type
 >    'normal'` — custom blocks are silent to walk on and break. Small, real.
+> 1b. **Eyeball the 3D preview in a browser.** The face rectangles and the
+>    orientation are covered by tests and by rendering the rigs out flat; what
+>    nobody has done is *look* at the CSS-transformed version. Mirrored limbs
+>    are the likeliest thing to be subtly wrong.
 > 2. **More triggers and actions.** Cheap and additive now the machinery exists;
 >    add a preset, not packaging code.
 > 3. **Pack textures in IndexedDB too**, the same way. Autosave is where a kid's

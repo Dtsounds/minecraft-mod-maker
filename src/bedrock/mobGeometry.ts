@@ -18,6 +18,12 @@
  * What it buys is control of the UV layout (so a painted texture maps
  * predictably) and immunity from vanilla renaming things.
  *
+ * Because we own the layout, where every part of the skin lands is derivable
+ * rather than something to write down twice — see `mobUv.ts`. There used to be
+ * a hand-written `uvRegions` list here for the starter skin to colour in; it
+ * had drifted into covering hundreds of pixels that map onto nothing, which is
+ * exactly the failure a second source of truth is good at.
+ *
  * Animation still comes from vanilla. `animation.quadruped.walk` was verified
  * against Mojang's own quadruped.animation.json to animate exactly the bones
  * `leg0`..`leg3` — so any rig that names its legs that way gets vanilla leg
@@ -39,16 +45,6 @@ export interface Bone {
   cubes: Cube[];
 }
 
-/** A rectangle of the texture, so the starter image can block out regions. */
-export interface UvRegion {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  /** Which body part this covers — drives the starter texture's colours. */
-  part: 'head' | 'body' | 'limb';
-}
-
 export interface MobRig {
   id: 'quadruped' | 'biped' | 'bird';
   label: string;
@@ -58,7 +54,6 @@ export interface MobRig {
   textureSize: 64;
   collision: { width: number; height: number };
   bones: Bone[];
-  uvRegions: UvRegion[];
 }
 
 /** Cow/pig shaped: four legs, animated by animation.quadruped.walk. */
@@ -84,11 +79,6 @@ const QUADRUPED: MobRig = {
     { name: 'leg1', pivot: [2, 6, -4], cubes: [{ origin: [0, 0, -6], size: [4, 6, 4], uv: [16, 40] }] },
     { name: 'leg2', pivot: [-2, 6, 4], cubes: [{ origin: [-4, 0, 2], size: [4, 6, 4], uv: [32, 40] }] },
     { name: 'leg3', pivot: [2, 6, 4], cubes: [{ origin: [0, 0, 2], size: [4, 6, 4], uv: [48, 40] }] },
-  ],
-  uvRegions: [
-    { x: 0, y: 0, w: 28, h: 14, part: 'head' },
-    { x: 0, y: 16, w: 40, h: 20, part: 'body' },
-    { x: 0, y: 40, w: 64, h: 10, part: 'limb' },
   ],
 };
 
@@ -124,12 +114,6 @@ const BIPED: MobRig = {
     { name: 'leg0', pivot: [-2, 12, 0], cubes: [{ origin: [-4, 0, -2], size: [4, 12, 4], uv: [0, 16] }] },
     { name: 'leg1', pivot: [2, 12, 0], cubes: [{ origin: [0, 0, -2], size: [4, 12, 4], uv: [0, 16], mirror: true }] },
   ],
-  uvRegions: [
-    { x: 0, y: 0, w: 32, h: 16, part: 'head' },
-    { x: 16, y: 16, w: 24, h: 20, part: 'body' },
-    { x: 0, y: 16, w: 16, h: 20, part: 'limb' },
-    { x: 40, y: 16, w: 16, h: 20, part: 'limb' },
-  ],
 };
 
 /** Chicken shaped: small body, two legs, wings. */
@@ -159,12 +143,6 @@ const BIRD: MobRig = {
       pivot: [3, 11, 0],
       cubes: [{ origin: [3, 8, -3], size: [1, 4, 6], uv: [40, 0], mirror: true }],
     },
-  ],
-  uvRegions: [
-    { x: 0, y: 0, w: 20, h: 12, part: 'head' },
-    { x: 0, y: 16, w: 24, h: 20, part: 'body' },
-    { x: 26, y: 0, w: 12, h: 22, part: 'limb' },
-    { x: 40, y: 0, w: 14, h: 14, part: 'limb' },
   ],
 };
 

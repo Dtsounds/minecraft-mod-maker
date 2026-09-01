@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Texture } from '../../bedrock/types';
 import { normalizeTexture, resizeTexture, type TextureSize, TEXTURE_SIZES } from '../../bedrock/texture';
 import { DEFAULT_COLOR, PALETTE_ROWS } from './palette';
@@ -14,11 +14,40 @@ import {
 } from './tools';
 import { useUndoStack } from './useUndoStack';
 
+/**
+ * A map of what the canvas means, for textures that wrap onto something.
+ *
+ * An item's texture is just a picture, but a creature's is a sheet that folds
+ * onto a set of boxes: most of it shows nowhere, and two rectangles can be the
+ * same arm twice. Passing this in draws that on top of the grid. Deliberately
+ * a plain shape rather than an import from the mob code — the editor should
+ * not have to know what a rig is.
+ */
+export interface PixelGuide {
+  /** `size * size`, false where painting shows up nowhere. */
+  used: boolean[];
+  areas: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    partId: string;
+    partLabel: string;
+    faceLabel: string;
+  }[];
+  /** When set, everything outside this part is dimmed away. */
+  focus?: string | null;
+}
+
 interface Props {
   texture: Texture;
   title?: string;
   /** Offer the 16/32/64 size switcher. */
   allowResize?: boolean;
+  /** Draw the part/face map over the grid. */
+  guide?: PixelGuide;
+  /** Extra panel above the tools — gets the texture as it is being painted. */
+  sidebar?: (texture: Texture) => ReactNode;
   onSave: (texture: Texture) => void;
   onCancel: () => void;
 }
@@ -35,6 +64,8 @@ export function PixelEditor({
   texture,
   title = 'Draw your picture',
   allowResize = true,
+  guide,
+  sidebar,
   onSave,
   onCancel,
 }: Props) {
@@ -43,6 +74,7 @@ export function PixelEditor({
 
   const [tool, setTool] = useState<ToolId>('pencil');
   const [color, setColor] = useState<string>(DEFAULT_COLOR);
+  const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const painting = useRef(false);
   const lastCell = useRef<{ x: number; y: number } | null>(null);
   const reset = history.reset;
@@ -106,6 +138,24 @@ export function PixelEditor({
     history.commit(resizeTexture(current, size));
   };
 
+  // A guide only makes sense against the canvas it was built for. If a resize
+  // ever put the two out of step, showing nothing beats showing a lie.
+  const map = guide && guide.used.length === current.size * current.size ? guide : undefined;
+
+  const areaAt = useCallback(
+    (x: number, y: number) =>
+      map?.areas.find((a) => x >= a.x && x < a.x + a.w && y >= a.y && y < a.y + a.h) ?? null,
+    [map],
+  );
+
+  const readout = useMemo(() => {
+    if (!map) return null;
+    if (!hover) return 'Point at the grid to see which bit of your creature it paints.';
+    const area = areaAt(hover.x, hover.y);
+    if (!area) return 'This square is not on your creature — painting here shows nowhere.';
+    return `${area.partLabel} — ${area.faceLabel.toLowerCase()}`;
+  }, [map, hover, areaAt]);
+
   return (
     <div className="pixel-editor stack">
       <div className="row">
@@ -120,6 +170,8 @@ export function PixelEditor({
       </div>
 
       <div className="pixel-editor__body">
+       <div className="pixel-canvas stack">
+        <div className="pixel-canvas__frame">
         <div
           className="pixel-grid"
           style={{ gridTemplateColumns: `repeat(${current.size}, 1fr)` }}
@@ -127,19 +179,26 @@ export function PixelEditor({
           aria-label="Drawing grid"
           onPointerLeave={() => {
             lastCell.current = null;
+            setHover(null);
           }}
         >
           {current.pixels.map((cell, index) => {
             const x = index % current.size;
             const y = Math.floor(index / current.size);
             const where = `${x + 1}, ${y + 1}`;
+            const area = map ? areaAt(x, y) : null;
+            const dead = map ? !map.used[index] : false;
+            const muted = Boolean(map?.focus && area && area.partId !== map.focus);
+            const what = area ? `, ${area.partLabel} ${area.faceLabel.toLowerCase()}` : dead ? ', not on your creature' : '';
             return (
               <button
                 key={index}
                 type="button"
-                className="pixel-grid__cell"
+                className={`pixel-grid__cell${dead ? ' pixel-grid__cell--dead' : ''}${
+                  muted ? ' pixel-grid__cell--muted' : ''
+                }`}
                 role="gridcell"
-                aria-label={cell ? `Pixel ${where}, ${cell}` : `Pixel ${where}, empty`}
+                aria-label={(cell ? `Pixel ${where}, ${cell}` : `Pixel ${where}, empty`) + what}
                 style={cell ? { background: cell } : undefined}
                 onPointerDown={(e) => {
                   // Release capture so a drag that leaves this button still
@@ -147,7 +206,11 @@ export function PixelEditor({
                   e.currentTarget.releasePointerCapture?.(e.pointerId);
                   handleDown(x, y);
                 }}
-                onPointerEnter={() => handleEnter(x, y)}
+                onPointerEnter={() => {
+                  if (map) setHover({ x, y });
+                  handleEnter(x, y);
+                }}
+                onFocus={() => map && setHover({ x, y })}
                 onClick={() => {
                   // Keyboard / assistive activation, and the path tests take.
                   if (!painting.current) applyAt(x, y, false);
@@ -157,7 +220,35 @@ export function PixelEditor({
           })}
         </div>
 
+        {map && (
+          <div className="pixel-guide" aria-hidden>
+            {map.areas.map((area) => {
+              const pct = (n: number) => `${(n / current.size) * 100}%`;
+              const big = area.w >= 6 && area.h >= 5;
+              const dim = Boolean(map.focus && area.partId !== map.focus);
+              return (
+                <div
+                  key={`${area.x},${area.y},${area.w},${area.h},${area.faceLabel}`}
+                  className={`pixel-guide__area${dim ? ' pixel-guide__area--dim' : ''}`}
+                  style={{ left: pct(area.x), top: pct(area.y), width: pct(area.w), height: pct(area.h) }}
+                >
+                  {big && <span className="pixel-guide__label">{area.faceLabel}</span>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        </div>
+
+        {readout && (
+          <p className="pixel-canvas__readout" role="status">
+            {readout}
+          </p>
+        )}
+       </div>
+
         <div className="pixel-editor__controls stack">
+          {sidebar?.(current)}
           <div className="tool-row" role="group" aria-label="Tools">
             {TOOLS.map((t) => (
               <button

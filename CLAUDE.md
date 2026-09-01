@@ -130,6 +130,41 @@ declare their own sliders with min/max. The UI draws from them **and** the
 generator clamps against them, so the two cannot drift. Add new content types
 by adding a preset, not by touching packaging.
 
+### Where a creature's skin lands is derived, never written down
+
+`mobUv.ts` unwraps a rig's boxes into labelled rectangles: which part, which
+face, and every bone that shares it. The pixel editor's overlay, the "paint one
+part at a time" buttons, the 3D preview and the starter skin all read that one
+map, so none of them can drift apart.
+
+Two facts it exists to make visible, both of which had been confusing kids:
+
+- **Two thirds of the canvas maps to nothing.** 67% dead for the quadruped,
+  71% biped, 85% bird. Painting there shows up nowhere, silently.
+- **Twins share a rectangle.** The biped's two arms read the same pixels, as do
+  its legs and the bird's wings. Vanilla does this too — `geometry.pig.v1.8`
+  uses one rectangle for all four legs.
+
+The unwrap was checked against `Mojang/bedrock-samples`: run it over the pig,
+cow and chicken and every face lands on-sheet, tiling the pig's 64x32 exactly
+to (64, 32). `tests/mob-uv.test.ts` keeps that as a fixture. A wrong face order
+overflows or falls short, so that one assertion is the whole proof.
+
+There used to be a hand-written `uvRegions` list on each rig for the starter
+skin. It had drifted into covering hundreds of dead pixels — a second source of
+truth doing what second sources of truth do. It is gone.
+
+### The 3D preview is CSS, not a 3D library
+
+`MobPreview.tsx` builds the creature from six absolutely-positioned divs per
+box, each showing its own rectangle of the texture through
+`background-position`. ~40 nodes, nothing added to the bundle, and inspectable
+from tests — which is how the orientation is pinned: Minecraft's y is up and
+its z is south, CSS's y is down and its z faces the viewer, so both flip.
+`tests/mob-paint-flow.test.tsx` asserts the head ends up above and in front of
+the body, because upside-down and inside-out are the two ways this goes wrong
+and no texture assertion would notice either.
+
 ### Textures are packed at the file boundary, not in the app
 
 `src/storage/textureCodec.ts` writes a texture into a `.modmaker.json` as a
@@ -171,7 +206,7 @@ do not use.
 
 ## Testing
 
-`npm test` — 271 tests. `npm run build`, `npx tsc -b --noEmit`.
+`npm test` — 289 tests. `npm run build`, `npx tsc -b --noEmit`.
 
 The suite verifies our bytes against our own understanding, which is *not* the
 same as the game agreeing: it passed cleanly through four real on-device bugs.

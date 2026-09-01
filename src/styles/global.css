@@ -651,6 +651,118 @@ code {
   z-index: 1;
 }
 
+.pixel-canvas {
+  flex: 1 1 320px;
+  min-width: 0;
+  gap: 8px;
+}
+
+.pixel-canvas__frame {
+  position: relative;
+  display: flex;
+}
+
+.pixel-canvas__readout {
+  margin: 0;
+  min-height: 1.4em;
+  font-size: 0.95rem;
+  text-align: center;
+  color: var(--gold);
+}
+
+/* --- The part/face map drawn over a creature's skin ---------------- */
+
+.pixel-guide {
+  position: absolute;
+  /* Sits inside the grid's 4px border, so a rectangle lands on its pixels. */
+  inset: 4px;
+  pointer-events: none;
+}
+
+.pixel-guide__area {
+  position: absolute;
+  box-shadow: inset 0 0 0 2px #000000cc, inset 0 0 0 3px #ffffff8c;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  overflow: hidden;
+  transition: opacity 120ms ease;
+}
+
+.pixel-guide__area--dim {
+  opacity: 0.25;
+}
+
+.pixel-guide__label {
+  font-size: 0.6rem;
+  line-height: 1;
+  padding: 2px 3px;
+  color: #fff;
+  background: #000000a6;
+  white-space: nowrap;
+}
+
+/* Squares that map onto nothing: painting there shows up nowhere at all. */
+.pixel-grid__cell--dead {
+  background-image: repeating-linear-gradient(
+    45deg,
+    #00000073 0 3px,
+    #ffffff0d 3px 6px
+  );
+  cursor: not-allowed;
+}
+
+.pixel-grid__cell--muted {
+  opacity: 0.35;
+}
+
+/* --- The creature, in 3D ------------------------------------------ */
+
+.mob-preview {
+  align-items: center;
+  gap: 4px;
+}
+
+.mob-preview__stage {
+  perspective: 700px;
+  touch-action: none;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #00000026;
+  box-shadow: inset 0 0 0 3px #00000038;
+  border-radius: var(--radius-sm);
+}
+
+.mob-preview__stage:active {
+  cursor: grabbing;
+}
+
+.mob-preview__world {
+  position: relative;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+}
+
+.mob-preview__box {
+  position: absolute;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+}
+
+.mob-preview__face {
+  position: absolute;
+  left: 0;
+  top: 0;
+  image-rendering: pixelated;
+  backface-visibility: hidden;
+  /* A flat-shaded box reads as a blob; a hair of edge separates the faces. */
+  box-shadow: inset 0 0 0 1px #0000001a;
+}
+
 .pixel-editor__controls {
   flex: 1 1 260px;
   min-width: 240px;
@@ -659,6 +771,12 @@ code {
 .tool-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.part-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
   gap: 8px;
 }
 
@@ -1216,6 +1334,7 @@ code {
 .tool,
 .empty,
 .note,
+.mob-preview__stage,
 .field__hint {
   border-radius: 0 !important;
 }
