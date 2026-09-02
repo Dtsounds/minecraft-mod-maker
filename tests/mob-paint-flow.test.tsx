@@ -239,6 +239,46 @@ describe('painting a creature', () => {
     expect(world.style.transform).not.toBe(before);
   }, 40000);
 
+  it('flies the camera to the part the kid picked, and back out again', async () => {
+    // Painting a chicken's foot on a whole chicken means aiming at four
+    // pixels. Framing the part makes those same four pixels fill the stage.
+    const user = userEvent.setup();
+    render(<App />);
+    await openPainter(user);
+
+    const world = screen.getByTestId('mob-preview-world');
+    expect(world.style.transform).toMatch(/scale\(1\)/);
+
+    const parts = screen.getByRole('group', { name: /which part to paint/i });
+    await user.click(within(parts).getByRole('button', { name: /legs/i }));
+
+    // Zoomed in, and centred on something other than the whole creature.
+    const zoom = Number(/scale\(([\d.]+)\)/.exec(world.style.transform)?.[1]);
+    expect(zoom).toBeGreaterThan(1);
+    expect(world.style.transform).not.toMatch(/translate3d\(0px, 0px, 0px\)/);
+
+    await user.click(within(parts).getByRole('button', { name: /^All$/i }));
+    expect(world.style.transform).toMatch(/scale\(1\)/);
+    expect(world.style.transform).toMatch(/translate3d\(0px, 0px, 0px\)/);
+  }, 40000);
+
+  it('only paints the part in close-up, not the scenery behind it', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await openPainter(user);
+
+    const parts = screen.getByRole('group', { name: /which part to paint/i });
+    await user.click(within(parts).getByRole('button', { name: /head/i }));
+
+    const world = screen.getByTestId('mob-preview-world');
+    const paintable = (bone: string) =>
+      (world.querySelector(`[data-bone="${bone}"]`) as HTMLElement).querySelectorAll('button').length;
+
+    expect(paintable('head')).toBeGreaterThan(0);
+    // The faded body is scenery: it must not take paint meant for the head.
+    expect(paintable('body')).toBe(0);
+  }, 40000);
+
   it('shuts the flat picture again with Escape, or the close button', async () => {
     const user = userEvent.setup();
     render(<App />);

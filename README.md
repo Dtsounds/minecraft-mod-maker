@@ -16,7 +16,7 @@ offline.
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 293 tests
+npm test           # 295 tests
 npm run build
 npm run sample     # writes a real .mcaddon to sample-output/
 npm run install-local  # installs straight into the live Minecraft world

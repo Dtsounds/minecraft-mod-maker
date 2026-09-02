@@ -176,6 +176,19 @@ the sheet is the fallback for fiddly work, not the thing to look at. Without a
 on different faces do not, because interpolating between them would draw a line
 across whatever sits between the two rectangles on the flat sheet.
 
+Picking a part flies the camera to it: one `scale(...) rotate... translate3d`
+on the world, so the texels, the hit testing and the drag-to-turn all carry on
+working inside a close-up. A faded part also stops being a painting target
+while another is framed, or the scenery takes the strokes meant for the
+close-up.
+
+Contrast is deliberate, not decoration. The stage is a lit gradient rather than
+a dark panel, each face carries a fixed light/dark overlay the way the game
+shades block faces, and an unpainted pixel is a faint ghost instead of nothing
+— a blank creature was otherwise an invisible one, which is precisely the state
+a kid starts in. The ghost is a small lie: those pixels really are transparent
+in game, which is what the "its skin is blank" warning is for.
+
 Orientation is pinned by tests, because upside-down and inside-out are the two
 ways this goes wrong and no texture assertion would notice either: Minecraft's
 y is up and its z is south, CSS's y is down and its z faces the viewer, so both
@@ -223,7 +236,7 @@ do not use.
 
 ## Testing
 
-`npm test` — 293 tests. `npm run build`, `npx tsc -b --noEmit`.
+`npm test` — 295 tests. `npm run build`, `npx tsc -b --noEmit`.
 
 The suite verifies our bytes against our own understanding, which is *not* the
 same as the game agreeing: it passed cleanly through four real on-device bugs.

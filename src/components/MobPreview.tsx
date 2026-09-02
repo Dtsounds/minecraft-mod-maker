@@ -69,6 +69,7 @@ export function MobPreview({ texture, rig, size = 200, label, onPaint, focus }: 
   const [angle, setAngle] = useState({ yaw: -28, pitch: 14 });
   const [turning, setTurning] = useState(false);
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
   const drag = useRef<{ x: number; y: number } | null>(null);
   // Which face the last painted texel was on, so a stroke joins up along one
   // face but never smears a line across the gap between two of them.
@@ -99,10 +100,45 @@ export function MobPreview({ texture, rig, size = 200, label, onPaint, focus }: 
   const scale = (size * 0.78) / span;
   const midY = (bounds.minY + bounds.maxY) / 2;
 
+  /**
+   * Fly the camera to whichever part the kid picked.
+   *
+   * Painting a chicken's foot on a whole chicken means aiming at a target four
+   * pixels across. Framing the part instead makes those same four pixels fill
+   * the stage, and because it is one transform on the world rather than a
+   * different render, everything inside it — the texels, the hit testing, the
+   * drag to turn — carries on working untouched.
+   */
+  const camera = useMemo(() => {
+    const cubes = rig.bones
+      .filter((b) => !focus || partOf(b.name) === focus)
+      .flatMap((b) => b.cubes);
+    if (!focus || cubes.length === 0) return { zoom: 1, x: 0, y: 0, z: 0 };
+
+    const lo = [Infinity, Infinity, Infinity];
+    const hi = [-Infinity, -Infinity, -Infinity];
+    for (const cube of cubes) {
+      for (let i = 0; i < 3; i++) {
+        lo[i] = Math.min(lo[i] as number, cube.origin[i] as number);
+        hi[i] = Math.max(hi[i] as number, (cube.origin[i] as number) + (cube.size[i] as number));
+      }
+    }
+    const mid = lo.map((n, i) => (n + (hi[i] as number)) / 2) as [number, number, number];
+    // The diagonal, so the part still fits however it is turned.
+    const reach = Math.max(...hi.map((n, i) => n - (lo[i] as number)), 1) * 1.35;
+    return {
+      zoom: Math.min(4, Math.max(1, span / reach)),
+      x: mid[0] * scale,
+      y: -(mid[1] - midY) * scale,
+      z: -mid[2] * scale,
+    };
+  }, [rig, focus, span, scale, midY]);
+
   const turn = (byYaw: number) => setAngle((a) => ({ ...a, yaw: a.yaw + byYaw }));
 
   const startDrag = (e: React.PointerEvent) => {
     drag.current = { x: e.clientX, y: e.clientY };
+    setDragging(true);
     e.currentTarget.setPointerCapture?.(e.pointerId);
   };
   const moveDrag = (e: React.PointerEvent) => {
@@ -118,6 +154,7 @@ export function MobPreview({ texture, rig, size = 200, label, onPaint, focus }: 
   const endDrag = () => {
     drag.current = null;
     stroke.current = null;
+    setDragging(false);
   };
 
   // Naming the part under the pointer is most of what the flat sheet's overlay
@@ -132,7 +169,9 @@ export function MobPreview({ texture, rig, size = 200, label, onPaint, focus }: 
     ? 'Drag the creature to turn it around.'
     : turning
       ? 'Drag the creature to turn it around.'
-      : 'Paint straight onto the creature. Drag the background to turn it.';
+      : focus
+        ? 'Close-up. Paint away — drag the background to turn it, or tap ✨ All to zoom back out.'
+        : 'Paint straight onto the creature. Drag the background to turn it.';
 
   return (
     <div className="mob-preview stack">
@@ -153,9 +192,13 @@ export function MobPreview({ texture, rig, size = 200, label, onPaint, focus }: 
         }}
       >
         <div
-          className="mob-preview__world"
+          className={`mob-preview__world${dragging ? '' : ' mob-preview__world--eased'}`}
           data-testid="mob-preview-world"
-          style={{ transform: `rotateX(${-angle.pitch}deg) rotateY(${angle.yaw}deg)` }}
+          style={{
+            transform:
+              `scale(${camera.zoom}) rotateX(${-angle.pitch}deg) rotateY(${angle.yaw}deg) ` +
+              `translate3d(${-camera.x}px, ${-camera.y}px, ${-camera.z}px)`,
+          }}
         >
           {rig.bones.flatMap((bone) =>
             bone.cubes.map((cube, cubeIndex) => {
@@ -199,7 +242,9 @@ export function MobPreview({ texture, rig, size = 200, label, onPaint, focus }: 
                           const ty = rect.y + Math.floor(i / rect.w);
                           const colour = skin.pixels[ty * skin.size + tx] ?? null;
                           const style = colour ? { background: colour } : undefined;
-                          if (!paintable) {
+                          // While one part is framed, the faded rest is scenery:
+                          // it must not take the paint meant for the close-up.
+                          if (!paintable || dim) {
                             return <span key={i} className="mob-preview__texel" style={style} />;
                           }
                           return (

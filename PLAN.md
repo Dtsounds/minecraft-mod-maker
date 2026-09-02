@@ -8,7 +8,7 @@
 > **Phases 1–4 are built and verified in the real game.** Items, blocks,
 > creatures, recipes and rules all work on-device. The sections
 > below are the original plan, kept for the reasoning — read this box for what
-> is actually true. 293 tests.
+> is actually true. 295 tests.
 >
 > **Phase 4 shipped as a rule builder, not Blockly.** "When [trigger] → do
 > [action]", six triggers and eight actions, built from presets like every
@@ -50,6 +50,8 @@
 >   it that map onto nothing, lets a kid paint one part at a time, and shows
 >   the assembled creature in 3D beside the grid, updating as they paint. All
 >   of it derived from the rig by `src/bedrock/mobUv.ts`.
+> - **Picking a body part zooms the camera to it**, so painting a chicken's
+>   foot is not aiming at four pixels. The rest fades and stops taking paint.
 > - **You can paint on the creature itself, and that is now the whole page.**
 >   Each face of the 3D model is a grid of its own texture pixels, so clicking
 >   the nose paints the nose — no raycasting, and the model is as testable as
