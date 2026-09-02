@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import type { MobRig } from '../bedrock/mobGeometry';
 import { cubeFaces, type CubeFace } from '../bedrock/mobUv';
-import { textureToDataUrl } from '../bedrock/texture';
+import { normalizeTexture } from '../bedrock/texture';
 import type { Texture } from '../bedrock/types';
 
 interface Props {
@@ -10,29 +10,34 @@ interface Props {
   /** Rendered box size in CSS pixels. */
   size?: number;
   label?: string;
+  /** Supply this and the creature itself becomes the canvas. */
+  onPaint?: (x: number, y: number, phase: 'start' | 'continue', connect: boolean) => void;
+  /** Fade every part except this one, matching the flat grid. */
+  focus?: string | null;
 }
 
 /**
- * The creature, in 3D, built out of the same rig that ships in the pack.
+ * The creature, in 3D, built out of the same rig that ships in the pack — and
+ * painted directly, if you hand it `onPaint`.
  *
- * Until this existed the only way to find out what a skin looked like was to
- * export the mod, import it, and go and find the thing in a world. A kid was
- * painting a flat square and hoping.
- *
- * It is CSS 3D transforms, not a 3D library: six absolutely-positioned divs
- * per box, each showing its own rectangle of the texture through
- * `background-position`. A rig is at most seven boxes, so this is ~40 nodes —
- * cheaper than the pixel grid next to it, with nothing added to the bundle and
- * nothing fetched at runtime. It also stays inspectable from tests and by a
- * screen reader, which a `<canvas>` would not be.
+ * It is CSS 3D transforms rather than a 3D library, and every face is a grid
+ * of its own texture pixels rather than an image. That second choice is what
+ * makes painting on the model possible without projecting a click back through
+ * a camera: a texel is a real element, so the browser's own hit testing says
+ * which pixel was touched, `backface-visibility` already refuses the faces
+ * pointing away, and the whole surface can be driven from a test with no
+ * layout at all. It is the bargain the flat grid already makes, and it costs
+ * less than the flat grid does — only the texels that appear on the creature
+ * exist, which is about a third of the sheet.
  *
  * Minecraft's model space is x east, y up, z south, and a mob faces north.
  * CSS is x right, y DOWN, z toward the viewer. So `y` and `z` both flip, which
  * turns the mob's north face towards whoever is looking at it — exactly the
- * face the kid thinks of as the front.
+ * face the kid thinks of as the front. One texel is one model unit in a box
+ * unwrap, so a face's pixel grid is exactly its size in the world.
  */
 
-/** Which UV rectangle shows on which side of the box, once flipped into CSS. */
+/** Where each face sits on its box, once flipped into CSS. */
 const FACE_TRANSFORMS: Record<CubeFace, (w: number, h: number, d: number) => string> = {
   front: (_w, _h, d) => `translateZ(${d / 2}px)`,
   back: (_w, _h, d) => `rotateY(180deg) translateZ(${d / 2}px)`,
@@ -40,16 +45,6 @@ const FACE_TRANSFORMS: Record<CubeFace, (w: number, h: number, d: number) => str
   left: (w) => `rotateY(-90deg) translateZ(${w / 2}px)`,
   top: (_w, h) => `rotateX(90deg) translateZ(${h / 2}px)`,
   bottom: (_w, h) => `rotateX(-90deg) translateZ(${h / 2}px)`,
-};
-
-/** The on-screen size of each face, in model units, before scaling. */
-const FACE_SIZES: Record<CubeFace, (w: number, h: number, d: number) => [number, number]> = {
-  front: (w, h) => [w, h],
-  back: (w, h) => [w, h],
-  right: (_w, h, d) => [d, h],
-  left: (_w, h, d) => [d, h],
-  top: (w, _h, d) => [w, d],
-  bottom: (w, _h, d) => [w, d],
 };
 
 /** A mirrored box shows its twin's sides, flipped — so swap east and west. */
@@ -62,11 +57,24 @@ const MIRRORED: Record<CubeFace, CubeFace> = {
   right: 'left',
 };
 
-export function MobPreview({ texture, rig, size = 200, label }: Props) {
-  const [angle, setAngle] = useState({ yaw: -28, pitch: 14 });
-  const drag = useRef<{ x: number; y: number } | null>(null);
+const FACES = Object.keys(FACE_TRANSFORMS) as CubeFace[];
 
-  const url = useMemo(() => textureToDataUrl(texture), [texture]);
+/** `leg0` -> `legs`, matching how `mobUv` groups parts. */
+function partOf(boneName: string): string {
+  const stem = boneName.replace(/\d+$/, '');
+  return stem === 'head' || stem === 'body' ? stem : `${stem}s`;
+}
+
+export function MobPreview({ texture, rig, size = 200, label, onPaint, focus }: Props) {
+  const [angle, setAngle] = useState({ yaw: -28, pitch: 14 });
+  const [turning, setTurning] = useState(false);
+  const drag = useRef<{ x: number; y: number } | null>(null);
+  // Which face the last painted texel was on, so a stroke joins up along one
+  // face but never smears a line across the gap between two of them.
+  const stroke = useRef<string | null>(null);
+
+  const skin = useMemo(() => normalizeTexture(texture), [texture]);
+  const paintable = Boolean(onPaint) && !turning;
 
   // Fit the rig in the box: find its extent, then scale so it fills the frame.
   const bounds = useMemo(() => {
@@ -89,11 +97,13 @@ export function MobPreview({ texture, rig, size = 200, label }: Props) {
   const scale = (size * 0.78) / span;
   const midY = (bounds.minY + bounds.maxY) / 2;
 
-  const onPointerDown = (e: React.PointerEvent) => {
+  const turn = (byYaw: number) => setAngle((a) => ({ ...a, yaw: a.yaw + byYaw }));
+
+  const startDrag = (e: React.PointerEvent) => {
     drag.current = { x: e.clientX, y: e.clientY };
     e.currentTarget.setPointerCapture?.(e.pointerId);
   };
-  const onPointerMove = (e: React.PointerEvent) => {
+  const moveDrag = (e: React.PointerEvent) => {
     const from = drag.current;
     if (!from) return;
     drag.current = { x: e.clientX, y: e.clientY };
@@ -103,21 +113,31 @@ export function MobPreview({ texture, rig, size = 200, label }: Props) {
       pitch: Math.max(-60, Math.min(60, a.pitch - (e.clientY - from.y) * 0.6)),
     }));
   };
-  const stopDrag = () => {
+  const endDrag = () => {
     drag.current = null;
+    stroke.current = null;
   };
+
+  const hint = !onPaint
+    ? 'Drag the creature to turn it around.'
+    : turning
+      ? 'Drag the creature to turn it around.'
+      : 'Paint straight onto the creature. Drag the background to turn it.';
 
   return (
     <div className="mob-preview stack">
       <div
-        className="mob-preview__stage"
+        className={`mob-preview__stage${paintable ? ' mob-preview__stage--paint' : ''}`}
         style={{ width: size, height: size }}
-        role="img"
-        aria-label={label ?? 'Your creature, in 3D. Drag to turn it around.'}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={stopDrag}
-        onPointerCancel={stopDrag}
+        role={onPaint ? 'group' : 'img'}
+        aria-label={
+          label ?? (onPaint ? 'Your creature. Paint on it, or drag to turn it.' : 'Your creature, in 3D.')
+        }
+        onPointerDown={startDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onPointerLeave={endDrag}
       >
         <div
           className="mob-preview__world"
@@ -133,6 +153,7 @@ export function MobPreview({ texture, rig, size = 200, label }: Props) {
                 z: -(cube.origin[2] + d / 2) * scale,
               };
               const rects = cubeFaces(cube.uv, cube.size);
+              const dim = Boolean(focus && focus !== partOf(bone.name));
               return (
                 <div
                   key={`${bone.name}-${cubeIndex}`}
@@ -140,29 +161,59 @@ export function MobPreview({ texture, rig, size = 200, label }: Props) {
                   data-bone={bone.name}
                   style={{ transform: `translate3d(${centre.x}px, ${centre.y}px, ${centre.z}px)` }}
                 >
-                  {(Object.keys(FACE_TRANSFORMS) as CubeFace[]).map((face) => {
-                    const source = cube.mirror ? MIRRORED[face] : face;
-                    const rect = rects.find((r) => r.face === source);
+                  {FACES.map((face) => {
+                    const rect = rects.find((r) => r.face === (cube.mirror ? MIRRORED[face] : face));
                     if (!rect || rect.w <= 0 || rect.h <= 0) return null;
-                    const [fw, fh] = FACE_SIZES[face](w, h, d);
+                    const key = `${rect.x},${rect.y},${rect.w},${rect.h}`;
                     return (
                       <div
                         key={face}
-                        className="mob-preview__face"
+                        className={`mob-preview__face${dim ? ' mob-preview__face--dim' : ''}`}
                         data-face={face}
                         style={{
-                          width: fw * scale,
-                          height: fh * scale,
-                          marginLeft: (-fw * scale) / 2,
-                          marginTop: (-fh * scale) / 2,
+                          width: rect.w * scale,
+                          height: rect.h * scale,
+                          marginLeft: (-rect.w * scale) / 2,
+                          marginTop: (-rect.h * scale) / 2,
+                          gridTemplateColumns: `repeat(${rect.w}, 1fr)`,
                           transform: `${FACE_TRANSFORMS[face](w * scale, h * scale, d * scale)}${
                             cube.mirror ? ' scaleX(-1)' : ''
                           }`,
-                          backgroundImage: `url(${url})`,
-                          backgroundSize: `${rig.textureSize * scale}px ${rig.textureSize * scale}px`,
-                          backgroundPosition: `${-rect.x * scale}px ${-rect.y * scale}px`,
                         }}
-                      />
+                      >
+                        {Array.from({ length: rect.w * rect.h }, (_, i) => {
+                          const tx = rect.x + (i % rect.w);
+                          const ty = rect.y + Math.floor(i / rect.w);
+                          const colour = skin.pixels[ty * skin.size + tx] ?? null;
+                          const style = colour ? { background: colour } : undefined;
+                          if (!paintable) {
+                            return <span key={i} className="mob-preview__texel" style={style} />;
+                          }
+                          return (
+                            <button
+                              key={i}
+                              type="button"
+                              className="mob-preview__texel"
+                              aria-label={`Paint ${tx + 1}, ${ty + 1}`}
+                              style={style}
+                              onPointerDown={(e) => {
+                                // Painting is not turning.
+                                e.stopPropagation();
+                                e.currentTarget.releasePointerCapture?.(e.pointerId);
+                                stroke.current = key;
+                                onPaint?.(tx, ty, 'start', false);
+                              }}
+                              onPointerEnter={(e) => {
+                                if (e.buttons === 0) return;
+                                const connect = stroke.current === key;
+                                stroke.current = key;
+                                onPaint?.(tx, ty, 'continue', connect);
+                              }}
+                              onClick={() => onPaint?.(tx, ty, 'start', false)}
+                            />
+                          );
+                        })}
+                      </div>
                     );
                   })}
                 </div>
@@ -171,7 +222,25 @@ export function MobPreview({ texture, rig, size = 200, label }: Props) {
           )}
         </div>
       </div>
-      <p className="tiny muted centre">Drag the creature to turn it around.</p>
+
+      {onPaint && (
+        <div className="row mob-preview__controls">
+          <button className="btn btn--ghost btn--icon" onClick={() => turn(-45)} aria-label="Turn left">
+            ↺
+          </button>
+          <button
+            className={`btn ${turning ? '' : 'btn--ghost'}`}
+            aria-pressed={turning}
+            onClick={() => setTurning((t) => !t)}
+          >
+            {turning ? '🤚 Turning' : '🖌️ Painting'}
+          </button>
+          <button className="btn btn--ghost btn--icon" onClick={() => turn(45)} aria-label="Turn right">
+            ↻
+          </button>
+        </div>
+      )}
+      <p className="tiny muted centre">{hint}</p>
     </div>
   );
 }

@@ -154,16 +154,29 @@ There used to be a hand-written `uvRegions` list on each rig for the starter
 skin. It had drifted into covering hundreds of dead pixels — a second source of
 truth doing what second sources of truth do. It is gone.
 
-### The 3D preview is CSS, not a 3D library
+### The 3D creature is CSS, and it is the canvas
 
-`MobPreview.tsx` builds the creature from six absolutely-positioned divs per
-box, each showing its own rectangle of the texture through
-`background-position`. ~40 nodes, nothing added to the bundle, and inspectable
-from tests — which is how the orientation is pinned: Minecraft's y is up and
-its z is south, CSS's y is down and its z faces the viewer, so both flip.
-`tests/mob-paint-flow.test.tsx` asserts the head ends up above and in front of
-the body, because upside-down and inside-out are the two ways this goes wrong
-and no texture assertion would notice either.
+`MobPreview.tsx` builds the creature from six divs per box, and **each face is
+a grid of its own texture pixels** rather than an image. That is what lets a
+kid paint on the model directly with no raycasting: a texel is a real element,
+so the browser's hit testing says which pixel was clicked, and
+`backface-visibility: hidden` already refuses the faces pointing away. It costs
+less than the flat grid — only the ~1300 texels that actually appear exist,
+against the flat grid's 4096 — and it is drivable from jsdom, which a canvas
+or a projection would not be.
+
+Painting goes back through `PixelEditor`'s `sidebar` render prop, which hands
+out `{ texture, paint }`. So the model gets the editor's tools, colour and undo
+stack rather than a second copy of them. `paint` carries a `connect` flag: two
+points on the same face join up, points on different faces do not, because
+interpolating between them would draw a line across whatever sits between the
+two rectangles on the flat sheet.
+
+Orientation is pinned by tests, because upside-down and inside-out are the two
+ways this goes wrong and no texture assertion would notice either: Minecraft's
+y is up and its z is south, CSS's y is down and its z faces the viewer, so both
+flip. `tests/mob-paint-flow.test.tsx` asserts the head ends up above and in
+front of the body.
 
 ### Textures are packed at the file boundary, not in the app
 
@@ -206,7 +219,7 @@ do not use.
 
 ## Testing
 
-`npm test` — 289 tests. `npm run build`, `npx tsc -b --noEmit`.
+`npm test` — 292 tests. `npm run build`, `npx tsc -b --noEmit`.
 
 The suite verifies our bytes against our own understanding, which is *not* the
 same as the game agreeing: it passed cleanly through four real on-device bugs.

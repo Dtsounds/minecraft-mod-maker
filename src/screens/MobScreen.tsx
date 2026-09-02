@@ -55,9 +55,9 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
           title={`Draw ${mob.name || 'your creature'}`}
           allowResize={false}
           guide={{ used: uv.used, areas: uv.areas, focus }}
-          sidebar={(texture) => (
+          sidebar={({ texture, paint }) => (
             <div className="stack">
-              <MobPreview texture={texture} rig={rig} size={200} />
+              <MobPreview texture={texture} rig={rig} size={280} onPaint={paint} focus={focus} />
               <div className="stack">
                 <span className="field__label">Show me the…</span>
                 <div className="part-row" role="group" aria-label="Which part to paint">

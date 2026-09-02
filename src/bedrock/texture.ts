@@ -69,35 +69,6 @@ export function textureToPng(texture: Texture): Uint8Array {
   return encodePng(textureToRgba(safe), safe.size, safe.size);
 }
 
-const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-
-/**
- * Base64, by hand.
- *
- * `btoa` exists in browsers and `Buffer` in Node, and reaching for either
- * would make this file behave differently in a test than it does for a kid.
- * `png.ts` already pays this price for the same reason.
- */
-function toBase64(bytes: Uint8Array): string {
-  let out = '';
-  for (let i = 0; i < bytes.length; i += 3) {
-    const a = bytes[i] as number;
-    const b = bytes[i + 1];
-    const c = bytes[i + 2];
-    const n = (a << 16) | ((b ?? 0) << 8) | (c ?? 0);
-    out += B64[(n >> 18) & 63] as string;
-    out += B64[(n >> 12) & 63] as string;
-    out += b === undefined ? '=' : (B64[(n >> 6) & 63] as string);
-    out += c === undefined ? '=' : (B64[n & 63] as string);
-  }
-  return out;
-}
-
-/** The texture as a `data:` URL, for anything that wants it as an image. */
-export function textureToDataUrl(texture: Texture): string {
-  return `data:image/png;base64,${toBase64(textureToPng(texture))}`;
-}
-
 /** True if every pixel is transparent — used to warn before exporting. */
 export function isTextureEmpty(texture: Texture): boolean {
   return normalizeTexture(texture).pixels.every((p) => p === null);

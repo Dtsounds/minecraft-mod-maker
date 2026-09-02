@@ -99,21 +99,24 @@ describe('painting a creature', () => {
     await openPainter(user);
 
     const world = screen.getByTestId('mob-preview-world');
-    // Six boxes for the quadruped rig, six faces each, all textured.
+    // Six boxes for the quadruped rig, six faces each.
     expect(world.querySelectorAll('[data-bone]')).toHaveLength(6);
-    const faces = world.querySelectorAll<HTMLElement>('.mob-preview__face');
-    expect(faces).toHaveLength(36);
-    for (const face of faces) expect(face.style.backgroundImage).toMatch(/url\("?data:image\/png;base64,/);
+    expect(world.querySelectorAll('.mob-preview__face')).toHaveLength(36);
 
-    // The head box's front face must show the head's front rectangle. The
-    // whole point of the preview is that this correspondence is real.
+    // Every texel that shows on the creature exists as an element, and no
+    // more: that is what makes the model itself clickable.
+    const map = rigUvMap(mobRig('quadruped'));
+    expect(world.querySelectorAll('.mob-preview__texel')).toHaveLength(
+      map.used.filter(Boolean).length,
+    );
+
+    // The head box's front face carries the head's front rectangle. The whole
+    // point of the preview is that this correspondence is real.
     const head = world.querySelector('[data-bone="head"]') as HTMLElement;
     const front = head.querySelector('[data-face="front"]') as HTMLElement;
-    const area = rigUvMap(mobRig('quadruped')).areas.find(
-      (a) => a.partId === 'head' && a.face === 'front',
-    );
-    const scale = Number.parseFloat(front.style.backgroundSize) / 64;
-    expect(Number.parseFloat(front.style.backgroundPosition)).toBeCloseTo(-(area?.x ?? 0) * scale, 4);
+    const area = map.areas.find((a) => a.partId === 'head' && a.face === 'front');
+    const first = front.querySelector('.mob-preview__texel') as HTMLElement;
+    expect(first).toHaveAccessibleName(`Paint ${(area?.x ?? 0) + 1}, ${(area?.y ?? 0) + 1}`);
   }, 40000);
 
   it('builds the creature the right way up and the right way round', async () => {
@@ -144,6 +147,73 @@ describe('painting a creature', () => {
     const head = world.querySelector('[data-bone="head"]') as HTMLElement;
     const front = head.querySelector('[data-face="front"]') as HTMLElement;
     expect(front.style.transform).toMatch(/^translateZ\([\d.]+px\)$/);
+  }, 40000);
+
+  it('paints straight onto the creature, and the flat sheet agrees', async () => {
+    // The whole point: a kid should never have to work out which square of a
+    // 64x64 sheet is the nose. They click the nose.
+    const user = userEvent.setup();
+    render(<App />);
+    await openPainter(user);
+
+    const world = screen.getByTestId('mob-preview-world');
+    const head = world.querySelector('[data-bone="head"]') as HTMLElement;
+    const front = head.querySelector('[data-face="front"]') as HTMLElement;
+    const texels = front.querySelectorAll<HTMLElement>('.mob-preview__texel');
+
+    // Pick a colour, then click a texel in the middle of the creature's face.
+    await user.click(screen.getByRole('button', { name: /colour #c22036/i }));
+    const target = texels[Math.floor(texels.length / 2)] as HTMLElement;
+    const [, tx, ty] = /Paint (\d+), (\d+)/.exec(target.getAttribute('aria-label') ?? '') ?? [];
+    await user.click(target);
+
+    // The same pixel of the flat grid changed — one texture, two surfaces.
+    const flat = cell(Number(tx) - 1, Number(ty) - 1);
+    expect(flat).toHaveAccessibleName(/#c22036/i);
+    expect(target.style.background).toBe('rgb(194, 32, 54)');
+  }, 40000);
+
+  it('carries a 3D stroke into the saved skin, as one undo', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await openPainter(user);
+
+    const world = screen.getByTestId('mob-preview-world');
+    const front = (world.querySelector('[data-bone="head"]') as HTMLElement).querySelector(
+      '[data-face="front"]',
+    ) as HTMLElement;
+    const texels = front.querySelectorAll<HTMLElement>('.mob-preview__texel');
+    await user.click(screen.getByRole('button', { name: /colour #c22036/i }));
+    await user.click(texels[0] as HTMLElement);
+    await user.click(texels[1] as HTMLElement);
+
+    // Undo takes back one dab, not the whole session.
+    await user.click(screen.getByRole('button', { name: /undo/i }));
+    expect((texels[0] as HTMLElement).style.background).toBe('rgb(194, 32, 54)');
+
+    await user.click(screen.getByRole('button', { name: /done/i }));
+    // Back on the creature screen, the skin kept the paint.
+    const still = screen.getByTestId('mob-preview-world');
+    const kept = still.querySelectorAll<HTMLElement>('.mob-preview__texel');
+    expect([...kept].some((t) => t.style.background === 'rgb(194, 32, 54)')).toBe(true);
+  }, 40000);
+
+  it('turns instead of painting once the kid says so', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await openPainter(user);
+
+    // In turning mode the texels stop being buttons, so a drag cannot smear
+    // paint across a creature the kid only meant to spin round.
+    expect(screen.getAllByRole('button', { name: /^Paint \d+, \d+$/ }).length).toBeGreaterThan(0);
+    await user.click(screen.getByRole('button', { name: /painting/i }));
+    expect(screen.queryAllByRole('button', { name: /^Paint \d+, \d+$/ })).toHaveLength(0);
+
+    // The turn buttons work whatever mode it is in.
+    const world = screen.getByTestId('mob-preview-world');
+    const before = world.style.transform;
+    await user.click(screen.getByRole('button', { name: /turn right/i }));
+    expect(world.style.transform).not.toBe(before);
   }, 40000);
 
   it('leaves an item’s texture as a plain square, with no creature map', async () => {

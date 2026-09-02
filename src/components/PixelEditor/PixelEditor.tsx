@@ -46,8 +46,15 @@ interface Props {
   allowResize?: boolean;
   /** Draw the part/face map over the grid. */
   guide?: PixelGuide;
-  /** Extra panel above the tools — gets the texture as it is being painted. */
-  sidebar?: (texture: Texture) => ReactNode;
+  /**
+   * Extra panel above the tools. It gets the texture as it is being painted
+   * and a brush onto it, so another surface — the 3D creature — can paint
+   * through this editor's tools, colour and undo stack rather than beside it.
+   */
+  sidebar?: (brush: {
+    texture: Texture;
+    paint: (x: number, y: number, phase: 'start' | 'continue', connect: boolean) => void;
+  }) => ReactNode;
   onSave: (texture: Texture) => void;
   onCancel: () => void;
 }
@@ -85,7 +92,7 @@ export function PixelEditor({
   }, [texture, reset]);
 
   const applyAt = useCallback(
-    (x: number, y: number, continuing: boolean) => {
+    (x: number, y: number, continuing: boolean, connect = true) => {
       if (tool === 'eyedropper') {
         const picked = getPixel(current, x, y);
         if (picked) setColor(picked);
@@ -98,7 +105,10 @@ export function PixelEditor({
       }
 
       const paint = tool === 'eraser' ? null : color;
-      const from = continuing ? lastCell.current : null;
+      // `connect` is false when the previous point of this stroke was on
+      // another face of the model: joining those two up would draw a line
+      // straight across whatever sits between them on the flat sheet.
+      const from = continuing && connect ? lastCell.current : null;
       const next = from ? drawLine(current, from, { x, y }, paint) : setPixel(current, x, y, paint);
       // Mid-stroke updates bypass history so one drag is one undo step.
       if (continuing) history.replace(next);
@@ -248,7 +258,13 @@ export function PixelEditor({
        </div>
 
         <div className="pixel-editor__controls stack">
-          {sidebar?.(current)}
+          {sidebar?.({
+            texture: current,
+            paint: (x, y, phase, connect) => {
+              applyAt(x, y, phase === 'continue', connect);
+              lastCell.current = { x, y };
+            },
+          })}
           <div className="tool-row" role="group" aria-label="Tools">
             {TOOLS.map((t) => (
               <button
