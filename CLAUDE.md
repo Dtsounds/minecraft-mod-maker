@@ -165,9 +165,12 @@ less than the flat grid — only the ~1300 texels that actually appear exist,
 against the flat grid's 4096 — and it is drivable from jsdom, which a canvas
 or a projection would not be.
 
-Painting goes back through `PixelEditor`'s `sidebar` render prop, which hands
-out `{ texture, paint }`. So the model gets the editor's tools, colour and undo
-stack rather than a second copy of them. `paint` carries a `connect` flag: two
+Painting goes back through `PixelEditor`'s `stage` render prop, which hands out
+`{ texture, paint }`. So the model gets the editor's tools, colour and undo
+stack rather than a second copy of them. Passing a `stage` also makes the flat
+sheet fold away behind a button and reopen as a large pop-up: for a creature
+the sheet is the fallback for fiddly work, not the thing to look at. Without a
+`stage` — items, blocks — the editor is exactly what it always was. `paint` carries a `connect` flag: two
 points on the same face join up, points on different faces do not, because
 interpolating between them would draw a line across whatever sits between the
 two rectangles on the flat sheet.
@@ -219,7 +222,7 @@ do not use.
 
 ## Testing
 
-`npm test` — 292 tests. `npm run build`, `npx tsc -b --noEmit`.
+`npm test` — 293 tests. `npm run build`, `npx tsc -b --noEmit`.
 
 The suite verifies our bytes against our own understanding, which is *not* the
 same as the game agreeing: it passed cleanly through four real on-device bugs.

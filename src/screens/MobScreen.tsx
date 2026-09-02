@@ -55,9 +55,9 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
           title={`Draw ${mob.name || 'your creature'}`}
           allowResize={false}
           guide={{ used: uv.used, areas: uv.areas, focus }}
-          sidebar={({ texture, paint }) => (
+          stage={({ texture, paint }) => (
             <div className="stack">
-              <MobPreview texture={texture} rig={rig} size={280} onPaint={paint} focus={focus} />
+              <MobPreview texture={texture} rig={rig} size={420} onPaint={paint} focus={focus} />
               <div className="stack">
                 <span className="field__label">Show me the…</span>
                 <div className="part-row" role="group" aria-label="Which part to paint">
@@ -180,7 +180,7 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
         <div className="card stack">
           <h2>What does it look like?</h2>
           <div className="row">
-            <MobPreview texture={mob.texture} rig={rig} size={190} label="Your creature, in 3D" />
+            <MobPreview texture={mob.texture} rig={rig} size={230} label="Your creature, in 3D" />
             <div className="stack">
               <button className="btn btn--big" onClick={() => setDrawing(true)}>
                 ✏️ Paint its skin

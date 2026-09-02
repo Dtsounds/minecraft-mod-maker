@@ -19,7 +19,14 @@ async function openPainter(user: User, rig?: RegExp) {
   await user.click(screen.getByRole('button', { name: /next: draw it/i }));
   await user.click(screen.getByRole('button', { name: /start me off/i }));
   await user.click(screen.getByRole('button', { name: /paint its skin/i }));
-  await screen.findByRole('grid', { name: /drawing grid/i });
+  // The creature is the canvas now; the flat sheet is behind a button.
+  await screen.findByRole('group', { name: /paint on it, or drag to turn it/i });
+}
+
+/** The flat sheet now lives behind a button — open it before poking at it. */
+async function openSheet(user: User) {
+  await user.click(screen.getByRole('button', { name: /show the flat picture/i }));
+  await screen.findByRole('dialog', { name: /the flat picture/i });
 }
 
 /** The cell at (x, y) of the 64x64 grid. */
@@ -45,25 +52,37 @@ describe('painting a creature', () => {
     render(<App />);
     await openPainter(user);
 
+    // On the creature itself, first — that is where a kid now paints.
+    const world = screen.getByTestId('mob-preview-world');
+    const nose = (world.querySelector('[data-bone="head"]') as HTMLElement).querySelector(
+      '[data-face="front"] .mob-preview__texel',
+    ) as HTMLElement;
+    await user.hover(nose);
+    expect(await screen.findByRole('status')).toHaveTextContent('Head — front');
+
+    // And on the flat sheet, for anyone who opens it.
+    await openSheet(user);
     // The quadruped's head is an 8x8x6 box at uv 0,0, so its face is at (6,6).
     expect(cell(8, 8)).toHaveAccessibleName(/head front/i);
-    await user.hover(cell(8, 8));
-    expect(await screen.findByRole('status')).toHaveTextContent('Head — front');
   }, 40000);
 
   it('marks the two thirds of the canvas that show up nowhere', async () => {
     const user = userEvent.setup();
     render(<App />);
     await openPainter(user);
+    await openSheet(user);
 
     const map = rigUvMap(mobRig('quadruped'));
     const dead = map.used.indexOf(false);
     expect(cell(dead % 64, Math.floor(dead / 64))).toHaveClass('pixel-grid__cell--dead');
     expect(cell(8, 8)).not.toHaveClass('pixel-grid__cell--dead');
 
-    // And it says so, rather than leaving the kid to wonder.
+    // And it says so, rather than leaving the kid to wonder. Scoped to the
+    // pop-up: the creature behind it has a readout of its own, which `aria-
+    // modal` hides from assistive tech but not from a query.
     await user.hover(cell(63, 63));
-    expect(await screen.findByRole('status')).toHaveTextContent(/not on your creature/i);
+    const sheet = screen.getByRole('dialog', { name: /the flat picture/i });
+    expect(within(sheet).getByRole('status')).toHaveTextContent(/not on your creature/i);
   }, 40000);
 
   it('dims everything but the part the kid picked', async () => {
@@ -73,6 +92,7 @@ describe('painting a creature', () => {
 
     const parts = screen.getByRole('group', { name: /which part to paint/i });
     await user.click(within(parts).getByRole('button', { name: /head/i }));
+    await openSheet(user);
 
     const [hx, hy] = pixelOn('head');
     const [bx, by] = pixelOn('body');
@@ -168,9 +188,12 @@ describe('painting a creature', () => {
     await user.click(target);
 
     // The same pixel of the flat grid changed — one texture, two surfaces.
+    expect(target.style.background).toBe('rgb(194, 32, 54)');
+
+    // ...and the same pixel of the flat sheet changed: one texture, two views.
+    await openSheet(user);
     const flat = cell(Number(tx) - 1, Number(ty) - 1);
     expect(flat).toHaveAccessibleName(/#c22036/i);
-    expect(target.style.background).toBe('rgb(194, 32, 54)');
   }, 40000);
 
   it('carries a 3D stroke into the saved skin, as one undo', async () => {
@@ -216,6 +239,22 @@ describe('painting a creature', () => {
     expect(world.style.transform).not.toBe(before);
   }, 40000);
 
+  it('shuts the flat picture again with Escape, or the close button', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await openPainter(user);
+    await openSheet(user);
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: /the flat picture/i })).not.toBeInTheDocument();
+
+    await openSheet(user);
+    await user.click(screen.getByRole('button', { name: /close/i }));
+    expect(screen.queryByRole('dialog', { name: /the flat picture/i })).not.toBeInTheDocument();
+    // Still on the creature, with the paint intact.
+    expect(screen.getByTestId('mob-preview-world')).toBeInTheDocument();
+  }, 40000);
+
   it('leaves an item’s texture as a plain square, with no creature map', async () => {
     // The guide is a creature thing. An item's picture is just a picture.
     const user = userEvent.setup();
@@ -232,5 +271,8 @@ describe('painting a creature', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(screen.queryByTestId('mob-preview-world')).not.toBeInTheDocument();
     expect(document.querySelectorAll('.pixel-grid__cell--dead')).toHaveLength(0);
+    // No creature, so no pop-up either: the grid is simply the canvas.
+    expect(screen.queryByRole('button', { name: /show the flat picture/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('grid', { name: /drawing grid/i })).toBeInTheDocument();
   }, 40000);
 });

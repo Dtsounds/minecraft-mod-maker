@@ -47,11 +47,15 @@ interface Props {
   /** Draw the part/face map over the grid. */
   guide?: PixelGuide;
   /**
-   * Extra panel above the tools. It gets the texture as it is being painted
-   * and a brush onto it, so another surface — the 3D creature — can paint
-   * through this editor's tools, colour and undo stack rather than beside it.
+   * A better painting surface than a flat square — the 3D creature.
+   *
+   * It gets the texture as it is being painted and a brush onto it, so it
+   * paints through this editor's tools, colour and undo stack rather than
+   * beside them. When one is given it becomes the main event and the flat
+   * sheet folds away behind a button, because for a creature the sheet is the
+   * fallback, not the thing a kid wants to look at.
    */
-  sidebar?: (brush: {
+  stage?: (brush: {
     texture: Texture;
     paint: (x: number, y: number, phase: 'start' | 'continue', connect: boolean) => void;
   }) => ReactNode;
@@ -72,7 +76,7 @@ export function PixelEditor({
   title = 'Draw your picture',
   allowResize = true,
   guide,
-  sidebar,
+  stage,
   onSave,
   onCancel,
 }: Props) {
@@ -82,6 +86,7 @@ export function PixelEditor({
   const [tool, setTool] = useState<ToolId>('pencil');
   const [color, setColor] = useState<string>(DEFAULT_COLOR);
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const painting = useRef(false);
   const lastCell = useRef<{ x: number; y: number } | null>(null);
   const reset = history.reset;
@@ -143,6 +148,13 @@ export function PixelEditor({
     };
   }, []);
 
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setSheetOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [sheetOpen]);
+
   const handleResize = (size: TextureSize) => {
     if (size === current.size) return;
     history.commit(resizeTexture(current, size));
@@ -166,21 +178,18 @@ export function PixelEditor({
     return `${area.partLabel} — ${area.faceLabel.toLowerCase()}`;
   }, [map, hover, areaAt]);
 
-  return (
-    <div className="pixel-editor stack">
-      <div className="row">
-        <h2>{title}</h2>
-        <span className="spacer" />
-        <button className="btn btn--ghost" onClick={onCancel}>
-          Cancel
-        </button>
-        <button className="btn btn--go" onClick={() => onSave(current)}>
-          ✓ Done
-        </button>
-      </div>
+  const brush = {
+    texture: current,
+    paint: (x: number, y: number, phase: 'start' | 'continue', connect: boolean) => {
+      applyAt(x, y, phase === 'continue', connect);
+      lastCell.current = { x, y };
+    },
+  };
 
-      <div className="pixel-editor__body">
-       <div className="pixel-canvas stack">
+  // The flat sheet. Rendered in place when it is the only surface there is,
+  // and inside the pop-up when the creature has taken the main slot.
+  const canvas = (
+    <div className="pixel-canvas stack">
         <div className="pixel-canvas__frame">
         <div
           className="pixel-grid"
@@ -255,16 +264,26 @@ export function PixelEditor({
             {readout}
           </p>
         )}
-       </div>
+    </div>
+  );
+
+  return (
+    <div className="pixel-editor stack">
+      <div className="row">
+        <h2>{title}</h2>
+        <span className="spacer" />
+        <button className="btn btn--ghost" onClick={onCancel}>
+          Cancel
+        </button>
+        <button className="btn btn--go" onClick={() => onSave(current)}>
+          ✓ Done
+        </button>
+      </div>
+
+      <div className={`pixel-editor__body${stage ? ' pixel-editor__body--stage' : ''}`}>
+        {stage ? <div className="pixel-editor__stage">{stage(brush)}</div> : canvas}
 
         <div className="pixel-editor__controls stack">
-          {sidebar?.({
-            texture: current,
-            paint: (x, y, phase, connect) => {
-              applyAt(x, y, phase === 'continue', connect);
-              lastCell.current = { x, y };
-            },
-          })}
           <div className="tool-row" role="group" aria-label="Tools">
             {TOOLS.map((t) => (
               <button
@@ -360,8 +379,33 @@ export function PixelEditor({
               <p className="tiny muted">Bigger means more detail, but more squares to fill in.</p>
             </div>
           )}
+
+          {stage && (
+            <button className="btn btn--ghost" onClick={() => setSheetOpen(true)}>
+              🗺️ Show the flat picture
+            </button>
+          )}
         </div>
       </div>
+
+      {stage && sheetOpen && (
+        <div className="pixel-sheet">
+          <div className="pixel-sheet__panel stack" role="dialog" aria-modal="true" aria-label="The flat picture">
+            <div className="row">
+              <h3>The flat picture</h3>
+              <span className="spacer" />
+              <button className="btn btn--go" onClick={() => setSheetOpen(false)}>
+                ✓ Close
+              </button>
+            </div>
+            <p className="tiny muted">
+              This is the whole skin, unfolded. Every box shows which bit of your creature it
+              wraps onto — the hatched squares are not on it at all.
+            </p>
+            {canvas}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import type { MobRig } from '../bedrock/mobGeometry';
-import { cubeFaces, type CubeFace } from '../bedrock/mobUv';
+import { cubeFaces, describePixel, rigUvMap, type CubeFace } from '../bedrock/mobUv';
 import { normalizeTexture } from '../bedrock/texture';
 import type { Texture } from '../bedrock/types';
 
@@ -68,12 +68,14 @@ function partOf(boneName: string): string {
 export function MobPreview({ texture, rig, size = 200, label, onPaint, focus }: Props) {
   const [angle, setAngle] = useState({ yaw: -28, pitch: 14 });
   const [turning, setTurning] = useState(false);
+  const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const drag = useRef<{ x: number; y: number } | null>(null);
   // Which face the last painted texel was on, so a stroke joins up along one
   // face but never smears a line across the gap between two of them.
   const stroke = useRef<string | null>(null);
 
   const skin = useMemo(() => normalizeTexture(texture), [texture]);
+  const map = useMemo(() => rigUvMap(rig), [rig]);
   const paintable = Boolean(onPaint) && !turning;
 
   // Fit the rig in the box: find its extent, then scale so it fills the frame.
@@ -118,6 +120,14 @@ export function MobPreview({ texture, rig, size = 200, label, onPaint, focus }: 
     stroke.current = null;
   };
 
+  // Naming the part under the pointer is most of what the flat sheet's overlay
+  // was for, and it belongs here now that the creature is the main surface.
+  const readout = hover
+    ? describePixel(map, hover.x, hover.y)
+    : onPaint
+      ? 'Point at your creature to see which bit you are about to paint.'
+      : null;
+
   const hint = !onPaint
     ? 'Drag the creature to turn it around.'
     : turning
@@ -137,7 +147,10 @@ export function MobPreview({ texture, rig, size = 200, label, onPaint, focus }: 
         onPointerMove={moveDrag}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-        onPointerLeave={endDrag}
+        onPointerLeave={() => {
+          endDrag();
+          setHover(null);
+        }}
       >
         <div
           className="mob-preview__world"
@@ -204,11 +217,13 @@ export function MobPreview({ texture, rig, size = 200, label, onPaint, focus }: 
                                 onPaint?.(tx, ty, 'start', false);
                               }}
                               onPointerEnter={(e) => {
+                                setHover({ x: tx, y: ty });
                                 if (e.buttons === 0) return;
                                 const connect = stroke.current === key;
                                 stroke.current = key;
                                 onPaint?.(tx, ty, 'continue', connect);
                               }}
+                              onFocus={() => setHover({ x: tx, y: ty })}
                               onClick={() => onPaint?.(tx, ty, 'start', false)}
                             />
                           );
@@ -222,6 +237,12 @@ export function MobPreview({ texture, rig, size = 200, label, onPaint, focus }: 
           )}
         </div>
       </div>
+
+      {readout && (
+        <p className="pixel-canvas__readout" role="status">
+          {readout}
+        </p>
+      )}
 
       {onPaint && (
         <div className="row mob-preview__controls">

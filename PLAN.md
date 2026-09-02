@@ -8,7 +8,7 @@
 > **Phases 1–4 are built and verified in the real game.** Items, blocks,
 > creatures, recipes and rules all work on-device. The sections
 > below are the original plan, kept for the reasoning — read this box for what
-> is actually true. 292 tests.
+> is actually true. 293 tests.
 >
 > **Phase 4 shipped as a rule builder, not Blockly.** "When [trigger] → do
 > [action]", six triggers and eight actions, built from presets like every
@@ -50,10 +50,12 @@
 >   it that map onto nothing, lets a kid paint one part at a time, and shows
 >   the assembled creature in 3D beside the grid, updating as they paint. All
 >   of it derived from the rig by `src/bedrock/mobUv.ts`.
-> - **You can paint on the creature itself.** Each face of the 3D model is a
->   grid of its own texture pixels, so clicking the nose paints the nose — no
->   raycasting, and the model is as testable as the flat grid. Both surfaces
->   edit one texture through one undo stack.
+> - **You can paint on the creature itself, and that is now the whole page.**
+>   Each face of the 3D model is a grid of its own texture pixels, so clicking
+>   the nose paints the nose — no raycasting, and the model is as testable as
+>   the flat grid. The flat sheet folds away behind a button and reopens as a
+>   large pop-up for fiddly work. Both surfaces edit one texture through one
+>   undo stack.
 > - **Backup files shrunk ~22x.** A saved texture is now a palette plus a
 >   run-length string rather than one hex string per pixel, so the on-device
 >   test mod's `.modmaker.json` went from 353KB to 16KB and a 64x64 creature
