@@ -1,46 +1,55 @@
 /* ------------------------------------------------------------------
    Bedrock Mod Maker design system.
-   Bright, game-like, high contrast. Every interactive target is at
-   least 48px so it works with a finger on a tablet, not just a mouse.
+
+   A creator tool: graphite surfaces, one accent that means something,
+   hairlines rather than bevels, and room to breathe. Targets stay large
+   enough for a finger on a tablet, because that has not stopped being
+   true — it just no longer has to look like it.
    ------------------------------------------------------------------ */
 
 :root {
-  /* Minecraft's own UI language: deepslate ground, stone-grey panels, and
-     accents borrowed from blocks a kid already knows by name. */
-  --bg: #262626;
-  --bg-deep: #191919;
-  --panel: #323232;
-  --panel-2: #3f3f3f;
-  --ink: #ffffff;
-  --ink-dim: #a9a9a9;
-  --line: #00000059;
+  --bg: #14161a;
+  --bg-deep: #0f1114;
+  --panel: #1b1e23;
+  --panel-2: #23272e;
+  --ink: #e9ecf1;
+  --ink-dim: #99a2ae;
 
-  /* Minecraft draws every control as a flat fill with a light top-left edge
-     and a dark bottom-right edge. No gradients, no rounding, no blur. */
-  --bevel-light: #ffffff40;
+  /* Two hairlines do all the separating work the bevels used to do. */
+  --line: #ffffff14;
+  --line-strong: #ffffff26;
+
+  /* One accent. Amber, because it is legible on graphite, it does not fight
+     the creature on its lit stage, and it keeps a thread back to the gold
+     this app used to be built out of. */
+  --accent: #e0a33f;
+  --accent-dim: #9b6f22;
+  --accent-ink: #17191d;
+
+  /* Kept under their old names so the rest of the sheet keeps working. What
+     changed is that they now mean something rather than naming a block:
+     amber is the primary action, green confirms, red destroys, blue informs. */
+  --gold: var(--accent);
+  --gold-dark: var(--accent-dim);
+  --grass: #55a06d;
+  --grass-dark: #35704a;
+  --sky: #5aa9d6;
+  --sky-dark: #35708f;
+  --berry: #cf5f55;
+  --berry-dark: #8d3b34;
+  --violet: #8b7fd4;
+  --stone: #2a2f36;
+  --bevel-light: #ffffff14;
   --bevel-dark: #00000059;
-  --stone: #8b8b8b;
 
-  --grass: #5ba127;      /* grass block */
-  --grass-dark: #3d6e18;
-  --gold: #fcee4b;       /* gold ingot */
-  --gold-dark: #b08d0f;
-  --sky: #4aedd9;        /* diamond */
-  --sky-dark: #1f9e8f;
-  --berry: #d93a2b;      /* redstone */
-  --berry-dark: #8f2119;
-  --violet: #a35fd4;     /* amethyst */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --tap: 44px;
+  --shadow: 0 1px 2px #00000059, 0 10px 30px #00000030;
 
-  /* Minecraft has no rounded corners anywhere. */
-  --radius: 0px;
-  --radius-sm: 0px;
-  --tap: 48px;
-  --shadow: 0 6px 0 rgba(0, 0, 0, 0.45);
-
-  /* An ordinary system font, at a size that suits an 8-year-old reading it on
-     a tablet. The pixel face looked the part but cost real legibility, which is
-     the wrong trade for an app whose readers are still learning to read.
-     System stack = no download, no third-party request, no privacy cost. */
+  /* System stack: no download, no third-party request, no privacy cost. The
+     self-hosted pixel face this project used to ship is long gone — it cost
+     real legibility — and nothing here brings it back. */
   --font: 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-body: var(--font);
 }
@@ -138,7 +147,9 @@ button {
 .page {
   flex: 1;
   width: 100%;
-  max-width: 1180px;
+  /* Wide enough to use a maximised window. Prose still wants a limit, so the
+     cap stays — it is just no longer a 1180px window inside a 2560px one. */
+  max-width: 1600px;
   margin: 0 auto;
   padding: clamp(16px, 3vw, 32px);
   display: flex;
@@ -369,9 +380,10 @@ button {
 }
 
 .hero__art {
-  font-size: clamp(50px, 10vw, 96px);
   line-height: 1;
-  filter: drop-shadow(0 6px 0 #00000040);
+  color: var(--accent);
+  opacity: 0.55;
+  filter: none;
 }
 
 .empty {
@@ -653,16 +665,17 @@ code {
 
 /* The creature is the main surface; the tools sit beside it. */
 .pixel-editor__body--stage .pixel-editor__stage {
-  flex: 2 1 440px;
+  flex: 3 1 460px;
   display: flex;
   justify-content: center;
   min-width: 0;
 }
 
 .pixel-editor__body--stage .pixel-editor__controls {
-  flex: 1 1 240px;
-  max-width: 340px;
+  flex: 1 1 260px;
+  max-width: 360px;
 }
+
 
 /* The flat sheet, when a kid asks for it. Bigger than it ever was inline. */
 .pixel-sheet {
@@ -682,13 +695,13 @@ code {
   border: 4px solid #00000059;
   box-shadow: 0 12px 40px #00000073;
   padding: 16px;
-  width: min(96vw, 760px);
+  width: min(96vw, 1040px);
   max-height: 96vh;
   overflow: auto;
 }
 
 .pixel-sheet__panel .pixel-grid {
-  width: min(88vw, 660px);
+  width: min(88vw, 74vh, 900px);
 }
 
 .pixel-canvas {
@@ -764,6 +777,10 @@ code {
 }
 
 .mob-preview__stage {
+  /* Sized by CSS and measured back by the component, so the creature grows
+     into a maximised window instead of sitting at a fixed 420px. */
+  width: 100%;
+  aspect-ratio: 1;
   perspective: 700px;
   touch-action: none;
   cursor: grab;
@@ -1288,10 +1305,7 @@ code {
   outline-offset: 2px;
 }
 
-.platform__emoji {
-  font-size: 2rem;
-  line-height: 1;
-}
+
 
 .steps-list {
   list-style: none;
@@ -1432,255 +1446,352 @@ code {
 }
 
 /* ==================================================================
-   Minecraft treatment.
+   Creator treatment.
    Appended last so it wins over the base rules without rewriting them.
 
-   Three things make Minecraft's UI read as Minecraft, and none of them
-   is the colour scheme:
-     1. square corners, everywhere, with no exceptions
-     2. a bevel: light top-left edge, dark bottom-right edge, flat fill
-     3. a hard 1-pixel-offset text shadow, never a blur
+   The app grew up. What made it read as a toy was not the colours, it was
+   the weight of everything: 3px bevels on every control, square corners
+   borrowed from Minecraft's own UI, an emoji on every button, and 18px type
+   set in bold. This layer takes all of that off.
+
+   What replaces it is what a tool looks like: one accent that means
+   something, hairlines instead of bevels, real spacing, and micro-labels in
+   small caps. The brightest thing on screen should be the creature.
    ================================================================== */
 
-/* 1. Square corners. The base sheet has a dozen literal radii that predate
-      the --radius token; this catches all of them in one place. */
-.card,
-.btn,
-.input,
-.kind,
-.pick,
-.chip,
-.step,
-.mod-card,
-.starter,
-.slider__input,
-.pixel-grid,
-.pixel-grid__cell,
-.swatch,
-.tool,
-.empty,
-.note,
-.mob-preview__stage,
-.field__hint {
-  border-radius: 0 !important;
+/* --- Surfaces ----------------------------------------------------- */
+
+body {
+  background: var(--bg);
+  background-image: radial-gradient(120% 80% at 50% -10%, #1e222a 0%, var(--bg) 55%);
+  line-height: 1.55;
 }
 
-/* 2. The bevel. */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.card--flat {
+  background: #ffffff05;
+  box-shadow: none;
+}
+
+.hero {
+  background: var(--panel-2);
+  background-image: none;
+  border: 1px solid var(--line);
+}
+
+.empty {
+  background: #00000030;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+}
+
+.note {
+  background: #ffffff08;
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius-sm);
+}
+
+.topbar {
+  background: #14161ac9;
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
+  backdrop-filter: blur(12px);
+}
+
+.topbar__brand {
+  font-size: 0.92rem;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.topbar__logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--accent);
+  box-shadow: none;
+}
+
+/* --- Controls ----------------------------------------------------- */
+
 .btn {
-  border-top: 3px solid var(--bevel-light);
-  border-left: 3px solid var(--bevel-light);
-  border-right: 3px solid var(--bevel-dark);
-  border-bottom: 3px solid var(--bevel-dark);
-  letter-spacing: 0.02em;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel-2);
+  color: var(--ink);
+  font-weight: 550;
+  letter-spacing: 0.01em;
+  box-shadow: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 120ms ease, border-color 120ms ease, transform 60ms ease;
+}
+
+.btn:hover:not(:disabled) {
+  background: #2c313a;
+  border-color: #ffffff38;
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+/* Colour says something. Amber is the one primary action on any screen,
+   green confirms, red destroys, and everything else is grey. */
+.btn--go,
+.btn--big {
+  background: var(--accent);
+  border-color: #00000038;
+  color: var(--accent-ink);
+  font-weight: 650;
+}
+
+.btn--go:hover:not(:disabled),
+.btn--big:hover:not(:disabled) {
+  background: #eab54f;
+  border-color: #00000038;
 }
 
 .btn--ghost {
+  background: transparent;
+  border-color: var(--line-strong);
+  color: var(--ink-dim);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: #ffffff0d;
+  color: var(--ink);
+}
+
+.btn--danger {
+  background: transparent;
+  border-color: #cf5f5559;
+  color: var(--berry);
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: #cf5f551f;
+  border-color: var(--berry);
+}
+
+.btn--sky {
   background: var(--panel-2);
-  border-top-color: var(--bevel-light);
-  border-left-color: var(--bevel-light);
-  border-right-color: var(--bevel-dark);
-  border-bottom-color: var(--bevel-dark);
+  color: var(--ink);
+  box-shadow: none;
 }
 
-/* Panels are the bevel inverted — sunk into the page rather than raised off
-   it, exactly like an inventory slot. */
-.card,
-.mod-card,
+.btn:disabled {
+  opacity: 0.4;
+}
+
+/* One focus treatment for everything, and it is not a 4px slab. */
+.btn:focus-visible,
+.tool:focus-visible,
+.kind:focus-visible,
+.pick:focus-visible,
+.swatch:focus-visible,
+.input:focus-visible,
+.textarea:focus-visible,
+.mob-preview__stage:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.tool,
 .kind,
-.empty {
-  border-top: 3px solid var(--bevel-dark);
-  border-left: 3px solid var(--bevel-dark);
-  border-right: 3px solid var(--bevel-light);
-  border-bottom: 3px solid var(--bevel-light);
+.pick,
+.mod-card,
+.starter,
+.platform,
+.pill {
+  background: #ffffff08;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+  color: var(--ink);
+  transition: background 120ms ease, border-color 120ms ease;
 }
 
+.tool:hover,
+.kind:hover,
+.pick:hover,
+.mod-card:hover,
+.platform:hover {
+  background: #ffffff12;
+  border-color: var(--line-strong);
+}
+
+.tool--on,
 .kind--on,
 .pick--on {
-  /* A selected control pops back out. */
-  border-top-color: var(--bevel-light);
-  border-left-color: var(--bevel-light);
-  border-right-color: var(--bevel-dark);
-  border-bottom-color: var(--bevel-dark);
+  background: #e0a33f1f;
+  border-color: var(--accent);
+  color: var(--ink);
+  box-shadow: none;
 }
 
-.pick {
-  border-top: 3px solid var(--bevel-dark);
-  border-left: 3px solid var(--bevel-dark);
-  border-right: 3px solid var(--bevel-light);
-  border-bottom: 3px solid var(--bevel-light);
+.tool {
+  min-height: 54px;
+  gap: 5px;
+  font-weight: 500;
+  font-size: 1rem;
 }
 
-.input {
-  border: 3px solid var(--bevel-dark);
-  border-right-color: var(--bevel-light);
-  border-bottom-color: var(--bevel-light);
-  background: #1c1c1c;
+.input,
+.textarea {
+  background: #0f1114;
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
 }
 
-/* 3. The hard text shadow — Minecraft's most recognisable typographic tic. */
+.input::placeholder,
+.textarea::placeholder {
+  color: #6b7481;
+}
+
+.slider__input {
+  border-radius: 999px;
+}
+
+.swatch {
+  border-radius: 5px;
+  border: 1px solid #00000059;
+}
+
+.swatch--on {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.export-bar,
+.celebrate {
+  background: var(--panel-2);
+  background-image: none;
+  border: 1px solid var(--line-strong);
+}
+
+.steps-list__num {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  box-shadow: none;
+  font-weight: 600;
+  width: 28px;
+  height: 28px;
+  font-size: 0.85rem;
+}
+
+/* --- Type --------------------------------------------------------- */
+
+html {
+  /* 18px was set for an eight-year-old at arm's length. This is a tool now. */
+  font-size: 16.5px;
+}
+
 h1,
 h2,
-h3,
-.topbar__brand,
-.mod-card__name,
-.kind__label,
-.stepnum {
-  letter-spacing: 0;
+h3 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-shadow: none;
 }
 
-/* Long-form copy drops back to a readable face. Everything that is a LABEL
-   stays pixelated; everything that is a SENTENCE does not. */
-.muted,
+h1 {
+  font-size: 1.6rem;
+}
+
+h2 {
+  font-size: 1.22rem;
+}
+
+h3 {
+  font-size: 1.02rem;
+}
+
+/* Micro-labels. The thing that most makes an interface look considered. */
+.field__label,
+.step__label {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+
+.tiny {
+  font-size: 0.82rem;
+}
+
 .field__hint,
-.kind__blurb,
-.tiny,
-.warn,
-.rule-sentence,
-p {
-  font-family: var(--font-body);
-  text-shadow: none;
+.kind__blurb {
+  font-size: 0.85rem;
+  color: var(--ink-dim);
+}
+
+.muted {
+  color: var(--ink-dim);
+}
+
+.warn {
+  color: var(--accent);
+}
+
+.ok {
+  color: var(--grass);
+  font-weight: 600;
+}
+
+/* --- Icons -------------------------------------------------------- */
+
+.icon {
+  display: block;
+  flex: none;
+}
+
+/* An icon sitting in a sentence rather than on a control. */
+.icon--inline {
+  display: inline-block;
+  vertical-align: -0.18em;
+  margin-right: 0.15em;
+}
+
+/* Part buttons are words now, so they need to look like a segmented control
+   rather than a tool with a missing picture. */
+.part-row .tool {
+  min-height: 40px;
+  padding: 0 10px;
+}
+
+/* Icons inside a stacked control sit above their label, and want to be the
+   quieter half of it. */
+.tool .icon,
+.kind .icon,
+.step .icon {
+  opacity: 0.85;
+}
+
+.tool--on .icon,
+.kind--on .icon {
+  opacity: 1;
+  color: var(--accent);
 }
 
 /* Textures are pixel art — never let the browser smooth them. */
 img,
 canvas {
   image-rendering: pixelated;
-}
-
-/* The top bar reads as a stone header rather than a floating brand strip. */
-.topbar {
-  background: #1f1f1f;
-  border-bottom: 3px solid #0f0f0f;
-  box-shadow: inset 0 3px 0 #ffffff1a;
-}
-
-/* Minecraft text fields are a dark sunken box with white text, not a white
-   sheet. The base rule sets a near-black ink for a white background, so the
-   ink has to move with the fill or the field becomes unreadable. */
-.input,
-.textarea {
-  background: #1c1c1c;
-  color: var(--ink);
-  border: 3px solid var(--bevel-dark);
-  border-right-color: var(--bevel-light);
-  border-bottom-color: var(--bevel-light);
-}
-
-.input::placeholder,
-.textarea::placeholder {
-  color: #7a7a7a;
-}
-
-/* Button ink: neutral, not the old purple-black. */
-.btn {
-  color: #1a1a1a;
-}
-
-.btn--ghost {
-  color: var(--ink);
-}
-
-/* The logo tile becomes a block, not a rounded app icon. */
-.topbar__logo {
-  border-radius: 0;
-  background: var(--grass);
-  box-shadow: inset 3px 3px 0 #ffffff33, inset -3px -3px 0 #00000059;
-}
-
-/* --- Revision pass: make it read as Minecraft, not just "dark" -----------
-
-   The single biggest tell is the button. Minecraft's are STONE — a flat grey
-   fill with white shadowed text — and colour is reserved for meaning. Neon
-   fills on a grey ground read as a generic gamer dark-mode instead. So the
-   ordinary "add a thing" buttons go grey, and colour now says something:
-   green confirms, gold is the one primary action, red destroys. */
-
-.btn--sky {
-  background: var(--stone);
-  box-shadow: 0 5px 0 #4f4f4f;
-  color: var(--ink);
-}
-.btn--sky:active:not(:disabled) {
-  box-shadow: 0 1px 0 #4f4f4f;
-}
-
-/* Deeper bevels. At #ffffff40 the edge was invisible on a dark ground, which
-   lost the one piece of geometry doing the work. */
-:root {
-  --bevel-light: #ffffff5c;
-  --bevel-dark: #00000082;
-  --panel: #3a3a3a;
-  --panel-2: #474747;
-}
-
-/* Sunken wells for empty states — an inventory slot with nothing in it. */
-.empty {
-  background: #00000038;
-  border-style: solid;
-}
-
-.pill {
-  border-radius: 0 !important;
-  background: var(--panel-2);
-  border-top: 2px solid var(--bevel-dark);
-  border-left: 2px solid var(--bevel-dark);
-  border-right: 2px solid var(--bevel-light);
-  border-bottom: 2px solid var(--bevel-light);
-}
-
-/* The last three panels still carrying the old purple-era gradients. Flat
-   fills instead — a gradient is the one thing Minecraft's UI never does. */
-.hero {
-  background: var(--panel-2);
-  background-image: none;
-}
-
-.export-bar,
-.celebrate {
-  background: #2f5c22;          /* grass, dimmed enough for white text */
-  background-image: none;
-  border-top: 3px solid #ffffff40;
-  border-left: 3px solid #ffffff40;
-  border-right: 3px solid #00000073;
-  border-bottom: 3px solid #00000073;
-}
-
-.warn {
-  color: var(--gold);
-}
-
-/* The 💾 save-to-file control sits beside the delete control on a mod card. */
-.mod-card__save {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-}
-
-.ok {
-  color: var(--grass);
-  font-weight: 700;
-}
-
-/* --- Bigger type -----------------------------------------------------------
-   Everything below scales from the root, so one number moves the whole app.
-   18px base rather than 16: the audience is 8-14, often on a tablet at arm's
-   length, and several of them are not fluent readers yet. */
-html {
-  font-size: 18px;
-}
-
-body {
-  line-height: 1.5;
-}
-
-.tiny {
-  font-size: 0.9rem;
-}
-
-.field__hint {
-  font-size: 0.95rem;
-}
-
-.kind__blurb {
-  font-size: 0.92rem;
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { VANILLA_GROUPS, VANILLA_ITEMS, lookupVanilla, type VanillaItem } from '../bedrock/vanillaItems';
 import { TexturePreview } from './TexturePreview';
 import type { RecipeSlot, Texture } from '../bedrock/types';
+import { Icon } from './Icon';
 
 interface Props {
   grid: RecipeSlot[];
@@ -76,7 +77,7 @@ export function RecipeGrid({ grid, count, resultTexture, resultName, onChange, o
         </div>
 
         <div className="recipe__arrow" aria-hidden>
-          ➡️
+          <Icon name="arrowRight" size={26} />
         </div>
 
         <div className="recipe__result">
@@ -142,7 +143,7 @@ export function RecipeGrid({ grid, count, resultTexture, resultName, onChange, o
 
       <div className="row">
         <button className="btn btn--ghost" onClick={() => onChange(new Array(9).fill(null))}>
-          🧹 Empty the grid
+          <Icon name="eraser" size={17} /> Empty the grid
         </button>
       </div>
     </div>

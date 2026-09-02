@@ -66,7 +66,6 @@ export interface UvArea {
 export interface UvPart {
   id: string;
   label: string;
-  emoji: string;
   areas: UvArea[];
 }
 
@@ -110,9 +109,9 @@ const GROUP_LABELS: Record<string, { label: string; plural: string; emoji: strin
   wings: { label: 'Wing', plural: 'Wings', emoji: '🪶' },
 };
 
-function groupLabel(group: string, shared: boolean): { one: string; many: string; emoji: string } {
-  const spec = GROUP_LABELS[group] ?? { label: group, plural: group, emoji: '⬜' };
-  return { one: shared ? `Both ${spec.plural.toLowerCase()}` : spec.label, many: spec.plural, emoji: spec.emoji };
+function groupLabel(group: string, shared: boolean): { one: string; many: string } {
+  const spec = GROUP_LABELS[group] ?? { label: group, plural: group };
+  return { one: shared ? `Both ${spec.plural.toLowerCase()}` : spec.label, many: spec.plural };
 }
 
 /**
@@ -162,7 +161,7 @@ export function rigUvMap(rig: MobRig): RigUvMap {
     let part = parts.find((p) => p.id === area.partId);
     if (!part) {
       const names = groupLabel(area.partId, false);
-      part = { id: area.partId, label: names.many, emoji: names.emoji, areas: [] };
+      part = { id: area.partId, label: names.many, areas: [] };
       parts.push(part);
     }
     part.areas.push(area);

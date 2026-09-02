@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { toNamespace } from '../bedrock/ids';
+import { Icon } from '../components/Icon';
 
 interface Props {
   onCreate: (name: string, description: string) => void;
@@ -60,7 +61,7 @@ export function NewModScreen({ onCreate, onCancel }: Props) {
 
       <div className="row">
         <button type="submit" className="btn btn--go btn--big">
-          Let’s go! →
+          Let’s go <Icon name="arrowRight" size={17} />
         </button>
         <button type="button" className="btn btn--ghost" onClick={onCancel}>
           Back

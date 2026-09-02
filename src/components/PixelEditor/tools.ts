@@ -1,19 +1,20 @@
 import type { Texture } from '../../bedrock/types';
+import type { IconName } from '../Icon';
 
 export type ToolId = 'pencil' | 'eraser' | 'fill' | 'eyedropper';
 
 export interface Tool {
   id: ToolId;
   label: string;
-  emoji: string;
+  icon: IconName;
   hint: string;
 }
 
 export const TOOLS: Tool[] = [
-  { id: 'pencil', label: 'Draw', emoji: '✏️', hint: 'Paint pixels.' },
-  { id: 'eraser', label: 'Erase', emoji: '🧽', hint: 'Rub pixels out.' },
-  { id: 'fill', label: 'Fill', emoji: '🪣', hint: 'Flood a whole area with colour.' },
-  { id: 'eyedropper', label: 'Pick', emoji: '💧', hint: 'Copy a colour you already used.' },
+  { id: 'pencil', label: 'Draw', icon: 'pencil', hint: 'Paint pixels.' },
+  { id: 'eraser', label: 'Erase', icon: 'eraser', hint: 'Rub pixels out.' },
+  { id: 'fill', label: 'Fill', icon: 'bucket', hint: 'Fill the face you click.' },
+  { id: 'eyedropper', label: 'Pick', icon: 'dropper', hint: 'Copy a colour you already used.' },
 ];
 
 /**

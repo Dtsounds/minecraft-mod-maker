@@ -13,6 +13,7 @@ import {
 import { Slider } from '../components/Slider';
 import { TexturePreview } from '../components/TexturePreview';
 import { VANILLA_ITEMS } from '../bedrock/vanillaItems';
+import { Icon, type IconName } from '../components/Icon';
 
 interface Props {
   rule: ModRule;
@@ -25,9 +26,9 @@ interface Props {
 
 type Step = 'when' | 'then';
 
-const STEPS: { id: Step; label: string; emoji: string }[] = [
-  { id: 'when', label: 'When…', emoji: '⏰' },
-  { id: 'then', label: '…do this', emoji: '✨' },
+const STEPS: { id: Step; label: string; icon: IconName }[] = [
+  { id: 'when', label: 'When…', icon: 'clock' },
+  { id: 'then', label: '…do this', icon: 'bolt' },
 ];
 
 /** The kid's own creations that a given trigger can watch. */
@@ -76,7 +77,7 @@ export function RuleScreen({ rule, items, blocks, mobs, onChange, onDone }: Prop
                   aria-pressed={on}
                   onClick={() => set({ kind: 'mine', refId: entry.id })}
                 >
-                  <span aria-hidden>⭐</span>
+                  <Icon name="star" />
                   <span>{entry.name || entry.fallback}</span>
                 </button>
               );
@@ -109,7 +110,7 @@ export function RuleScreen({ rule, items, blocks, mobs, onChange, onDone }: Prop
     <div className="stack">
       <div className="row">
         <button className="btn btn--ghost" onClick={onDone}>
-          ← Back to my mod
+          <Icon name="arrowLeft" size={17} /> Back to my mod
         </button>
         <span className="spacer" />
         <strong>{rule.name || 'Unnamed rule'}</strong>
@@ -123,7 +124,7 @@ export function RuleScreen({ rule, items, blocks, mobs, onChange, onDone }: Prop
             aria-current={step === s.id ? 'step' : undefined}
             onClick={() => setStep(s.id)}
           >
-            <span aria-hidden>{s.emoji}</span>
+            <Icon name={s.icon} size={17} />
             <span>{s.label}</span>
           </button>
         ))}
@@ -193,7 +194,7 @@ export function RuleScreen({ rule, items, blocks, mobs, onChange, onDone }: Prop
             <div className="stack">
               <span className="field__label">Which one?</span>
               {subjects.length === 0 ? (
-                <p className="warn tiny">⚠️ {tSpec.emptyHint}</p>
+                <p className="warn tiny"><Icon name="warning" size={15} className="icon--inline" /> {tSpec.emptyHint}</p>
               ) : (
                 <div className="pick-grid" role="group" aria-label="Which one">
                   {subjects.map((entry) => (
@@ -287,7 +288,7 @@ export function RuleScreen({ rule, items, blocks, mobs, onChange, onDone }: Prop
                 onChange={(e) => patch({ message: e.target.value })}
               />
               {!rule.message.trim() && (
-                <p className="warn tiny">⚠️ Type something, or this rule won’t do anything.</p>
+                <p className="warn tiny"><Icon name="warning" size={15} className="icon--inline" /> Type something, or this rule won’t do anything.</p>
               )}
             </div>
           )}

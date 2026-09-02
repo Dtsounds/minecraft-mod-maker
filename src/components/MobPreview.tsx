@@ -1,13 +1,15 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MobRig } from '../bedrock/mobGeometry';
 import { cubeFaces, describePixel, rigUvMap, type CubeFace } from '../bedrock/mobUv';
 import { normalizeTexture } from '../bedrock/texture';
 import type { Texture } from '../bedrock/types';
+import { Icon } from './Icon';
 
 interface Props {
   texture: Texture;
   rig: MobRig;
-  /** Rendered box size in CSS pixels. */
+  /** Largest the stage may get, in CSS pixels. It shrinks to fit, and grows
+   *  to here when the window allows. */
   size?: number;
   label?: string;
   /** Supply this and the creature itself becomes the canvas. */
@@ -70,10 +72,34 @@ export function MobPreview({ texture, rig, size = 200, label, onPaint, focus }: 
   const [turning, setTurning] = useState(false);
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const [dragging, setDragging] = useState(false);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [measured, setMeasured] = useState<number | null>(null);
   const drag = useRef<{ x: number; y: number } | null>(null);
   // Which face the last painted texel was on, so a stroke joins up along one
   // face but never smears a line across the gap between two of them.
   const stroke = useRef<string | null>(null);
+
+  /**
+   * CSS lays the stage out; we read the result back.
+   *
+   * The model is positioned with pixel transforms, so the maths needs a real
+   * number — but hard-coding one meant the creature stayed the same size in a
+   * maximised window as in a small one. So the stage is `width: 100%` with an
+   * aspect ratio, and this measures what that came to. No observer (jsdom, an
+   * ancient browser) simply falls back to the asked-for size.
+   */
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? 0;
+      if (width > 0) setMeasured(width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const stageSize = Math.max(160, measured ?? size);
 
   const skin = useMemo(() => normalizeTexture(texture), [texture]);
   const map = useMemo(() => rigUvMap(rig), [rig]);
@@ -97,7 +123,7 @@ export function MobPreview({ texture, rig, size = 200, label, onPaint, focus }: 
   }, [rig]);
 
   const span = Math.max(bounds.maxY - bounds.minY, bounds.reach * 2, 1);
-  const scale = (size * 0.78) / span;
+  const scale = (stageSize * 0.78) / span;
   const midY = (bounds.minY + bounds.maxY) / 2;
 
   /**
@@ -170,14 +196,16 @@ export function MobPreview({ texture, rig, size = 200, label, onPaint, focus }: 
     : turning
       ? 'Drag the creature to turn it around.'
       : focus
-        ? 'Close-up. Paint away — drag the background to turn it, or tap ✨ All to zoom back out.'
+        ? 'Close-up. Paint away — drag the background to turn it, or tap All to zoom back out.'
         : 'Paint straight onto the creature. Drag the background to turn it.';
 
   return (
     <div className="mob-preview stack">
       <div
+        ref={stageRef}
         className={`mob-preview__stage${paintable ? ' mob-preview__stage--paint' : ''}`}
-        style={{ width: size, height: size }}
+        // Never taller than a comfortable slice of the window, however wide it is.
+        style={{ maxWidth: `min(${size}px, 62vh)` }}
         role={onPaint ? 'group' : 'img'}
         aria-label={
           label ?? (onPaint ? 'Your creature. Paint on it, or drag to turn it.' : 'Your creature, in 3D.')
@@ -292,17 +320,18 @@ export function MobPreview({ texture, rig, size = 200, label, onPaint, focus }: 
       {onPaint && (
         <div className="row mob-preview__controls">
           <button className="btn btn--ghost btn--icon" onClick={() => turn(-45)} aria-label="Turn left">
-            ↺
+            <Icon name="rotateLeft" />
           </button>
           <button
             className={`btn ${turning ? '' : 'btn--ghost'}`}
             aria-pressed={turning}
             onClick={() => setTurning((t) => !t)}
           >
-            {turning ? '🤚 Turning' : '🖌️ Painting'}
+            <Icon name={turning ? 'orbit' : 'brush'} size={17} />
+            {turning ? 'Turning' : 'Painting'}
           </button>
           <button className="btn btn--ghost btn--icon" onClick={() => turn(45)} aria-label="Turn right">
-            ↻
+            <Icon name="rotateRight" />
           </button>
         </div>
       )}

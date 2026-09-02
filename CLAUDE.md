@@ -227,6 +227,22 @@ A pack with no runnable rules declares no script module at all, so pre-Phase-4
 mods still generate byte-identical output and cannot fail on a dependency they
 do not use.
 
+## The look
+
+A creator tool, not a toy: graphite surfaces, one amber accent that means
+something, hairlines instead of bevels, small-caps micro-labels. Colour is
+reserved — amber is the single primary action on a screen, green confirms, red
+destroys, everything else is grey. The brightest thing on screen should be the
+creature, not the chrome.
+
+`src/components/Icon.tsx` holds the interface's icons as inline SVG on one
+24x24 grid at one stroke weight. **The pictograms that stand for things in the
+game stay as emoji** — a diamond, a cow, an apple, the sixty vanilla items in
+the recipe grid. Those are content: a kid is picking a diamond, not a "gem
+icon", and hand-drawing sixty Minecraft items would be worse at the job as
+well as being a month of work. Chrome gets icons, content keeps emoji; if a new
+control needs a picture, it goes in `Icon.tsx` and matches the grid.
+
 ## Non-negotiables
 
 - Every generated add-on must be valid for *any* input. Clamp in the generator,
@@ -236,10 +252,12 @@ do not use.
   the browser.
 - Ask before adding a dependency that sends data off the machine.
 - **No external requests at runtime, fonts included.** The app loads zero
-  third-party resources. A Google Fonts `<link>` would send every child's IP
+  third-party resources. A Google Fonts `<link>` would send every user's IP
   address to a third party on every load, quietly undoing the one privacy
-  promise the project makes. The pixel font is self-hosted in
-  `src/styles/fonts/` (12KB, SIL OFL, license shipped alongside).
+  promise the project makes. Type is a system stack — no font file ships at
+  all. (This note used to claim a self-hosted pixel font in
+  `src/styles/fonts/`; that font was dropped for legibility long ago and the
+  directory does not exist. The rule it was an example of still stands.)
 
 ## Testing
 

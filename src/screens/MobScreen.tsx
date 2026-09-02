@@ -19,6 +19,7 @@ import { VANILLA_ITEMS } from '../bedrock/vanillaItems';
 import { isTextureEmpty, resizeTexture } from '../bedrock/texture';
 import { mobIdentifier } from '../bedrock/mob';
 import { starterMobTexture } from '../components/mobStarter';
+import { Icon, type IconName } from '../components/Icon';
 
 interface Props {
   mob: ModMob;
@@ -30,11 +31,11 @@ interface Props {
 
 type Step = 'basics' | 'look' | 'stats' | 'behavior';
 
-const STEPS: { id: Step; label: string; emoji: string }[] = [
-  { id: 'basics', label: 'Name', emoji: '🏷️' },
-  { id: 'look', label: 'Picture', emoji: '🎨' },
-  { id: 'stats', label: 'Powers', emoji: '💪' },
-  { id: 'behavior', label: 'Behaviour', emoji: '🧠' },
+const STEPS: { id: Step; label: string; icon: IconName }[] = [
+  { id: 'basics', label: 'Name', icon: 'tag' },
+  { id: 'look', label: 'Picture', icon: 'swatch' },
+  { id: 'stats', label: 'Powers', icon: 'bolt' },
+  { id: 'behavior', label: 'Behaviour', icon: 'sliders' },
 ];
 
 export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
@@ -57,7 +58,7 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
           guide={{ used: uv.used, areas: uv.areas, focus }}
           stage={({ texture, paint }) => (
             <div className="stack">
-              <MobPreview texture={texture} rig={rig} size={420} onPaint={paint} focus={focus} />
+              <MobPreview texture={texture} rig={rig} size={760} onPaint={paint} focus={focus} />
               <div className="stack">
                 <span className="field__label">Show me the…</span>
                 <div className="part-row" role="group" aria-label="Which part to paint">
@@ -66,7 +67,6 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
                     aria-pressed={focus === null}
                     onClick={() => setFocus(null)}
                   >
-                    <span aria-hidden>✨</span>
                     <span className="tiny">All</span>
                   </button>
                   {uv.parts.map((part) => (
@@ -76,7 +76,6 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
                       aria-pressed={focus === part.id}
                       onClick={() => setFocus(focus === part.id ? null : part.id)}
                     >
-                      <span aria-hidden>{part.emoji}</span>
                       <span className="tiny">{part.label}</span>
                     </button>
                   ))}
@@ -98,7 +97,7 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
     <div className="stack">
       <div className="row">
         <button className="btn btn--ghost" onClick={onDone}>
-          ← Back to my mod
+          <Icon name="arrowLeft" size={17} /> Back to my mod
         </button>
         <span className="spacer" />
         <TexturePreview texture={mob.texture} size={48} label="Creature preview" />
@@ -113,7 +112,7 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
             aria-current={step === s.id ? 'step' : undefined}
             onClick={() => setStep(s.id)}
           >
-            <span aria-hidden>{s.emoji}</span>
+            <Icon name={s.icon} size={17} />
             <span>{s.label}</span>
           </button>
         ))}
@@ -170,7 +169,7 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
 
           <div className="row">
             <button className="btn btn--go" onClick={() => setStep('look')}>
-              Next: draw it →
+              Next: draw it <Icon name="arrowRight" size={17} />
             </button>
           </div>
         </div>
@@ -183,16 +182,16 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
             <MobPreview texture={mob.texture} rig={rig} size={230} label="Your creature, in 3D" />
             <div className="stack">
               <button className="btn btn--big" onClick={() => setDrawing(true)}>
-                ✏️ Paint its skin
+                <Icon name="brush" size={17} /> Paint its skin
               </button>
               <button
                 className="btn btn--ghost"
                 onClick={() => patch({ texture: starterMobTexture(rig, '#c99a63') })}
               >
-                🎁 Start me off
+                <Icon name="star" size={17} /> Start me off
               </button>
               {isTextureEmpty(mob.texture) && (
-                <p className="warn tiny">⚠️ Its skin is blank — it’ll be invisible!</p>
+                <p className="warn tiny"><Icon name="warning" size={15} className="icon--inline" /> Its skin is blank — it’ll be invisible!</p>
               )}
               <p className="tiny muted">
                 This is exactly how it will look in the game. When you paint, the picture shows
@@ -204,7 +203,7 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
 
           <div className="row">
             <button className="btn btn--go" onClick={() => setStep('stats')}>
-              Next: powers →
+              Next: powers <Icon name="arrowRight" size={17} />
             </button>
           </div>
         </div>
@@ -228,14 +227,14 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
                 aria-pressed={drop.kind === 'nothing'}
                 onClick={() => patch({ drop: { kind: 'nothing' } })}
               >
-                🚫 Nothing
+                <Icon name="ban" /> Nothing
               </button>
               <button
                 className={`btn ${drop.kind === 'vanilla' ? '' : 'btn--ghost'}`}
                 aria-pressed={drop.kind === 'vanilla'}
                 onClick={() => patch({ drop: { kind: 'vanilla', id: 'minecraft:leather' } })}
               >
-                💎 A Minecraft item
+                <Icon name="gem" /> A Minecraft item
               </button>
               {items.length > 0 && (
                 <button
@@ -243,7 +242,7 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
                   aria-pressed={drop.kind === 'myItem'}
                   onClick={() => patch({ drop: { kind: 'myItem', itemId: items[0]!.id } })}
                 >
-                  ✨ One of my items
+                  <Icon name="star" /> One of my items
                 </button>
               )}
             </div>
@@ -291,7 +290,7 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
 
           <div className="row">
             <button className="btn btn--go" onClick={() => setStep('behavior')}>
-              Next: behaviour →
+              Next: behaviour <Icon name="arrowRight" size={17} />
             </button>
           </div>
         </div>
@@ -371,7 +370,7 @@ export function MobScreen({ mob, items, namespace, onChange, onDone }: Props) {
 
           <div className="row">
             <button className="btn btn--go btn--big" onClick={onDone}>
-              ✓ All done
+              <Icon name="check" size={17} /> All done
             </button>
           </div>
         </div>

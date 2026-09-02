@@ -7,6 +7,7 @@ import { ruleProblem } from '../bedrock/rules';
 import { describeContents } from '../bedrock/project';
 import { isTextureEmpty } from '../bedrock/texture';
 import type { SaveState } from '../storage/useAutosave';
+import { Icon } from '../components/Icon';
 
 interface Props {
   project: ModProject;
@@ -34,11 +35,11 @@ function saveLabel(state: SaveState): string {
     case 'saving':
       return 'Saving…';
     case 'saved':
-      return 'Saved ✓';
+      return 'Saved';
     case 'error':
       return 'Couldn’t save';
     default:
-      return 'Saved ✓';
+      return 'Saved';
   }
 }
 
@@ -90,7 +91,7 @@ export function EditorScreen({
     <div className="stack">
       <div className="row">
         <button className="btn btn--ghost" onClick={onBack}>
-          ← My Mods
+          <Icon name="arrowLeft" size={17} /> My Mods
         </button>
         <span className="spacer" />
         <span className={`pill pill--${saveState}`}>{saveLabel(saveState)}</span>
@@ -99,7 +100,7 @@ export function EditorScreen({
       <div className="card editor-head">
         <button className="icon-button" onClick={onEditIcon} aria-label="Change mod icon">
           <TexturePreview texture={project.icon} size={88} label="Mod icon" />
-          <span className="tiny">✏️ Icon</span>
+          <span className="tiny"><Icon name="pencil" size={14} className="icon--inline" /> Icon</span>
         </button>
         <div className="stack editor-head__text">
           <h1>{project.name}</h1>
@@ -112,7 +113,7 @@ export function EditorScreen({
           <h2>Items</h2>
           <span className="spacer" />
           <button className="btn btn--sky" onClick={onAddItem}>
-            ➕ Add an item
+            <Icon name="plus" size={17} /> Add an item
           </button>
         </div>
 
@@ -149,14 +150,14 @@ export function EditorScreen({
                           setConfirmDelete(null);
                         }}
                       >
-                        ✓
+                        <Icon name="check" size={17} />
                       </button>
                       <button
                         className="btn btn--ghost btn--icon"
                         aria-label="Keep it"
                         onClick={() => setConfirmDelete(null)}
                       >
-                        ✕
+                        <Icon name="close" size={17} />
                       </button>
                     </div>
                   ) : (
@@ -165,7 +166,7 @@ export function EditorScreen({
                       aria-label={`Delete ${item.name || 'this item'}`}
                       onClick={() => setConfirmDelete(item.id)}
                     >
-                      🗑️
+                      <Icon name="trash" size={17} />
                     </button>
                   )}
                 </li>
@@ -180,7 +181,7 @@ export function EditorScreen({
           <h2>Blocks</h2>
           <span className="spacer" />
           <button className="btn btn--sky" onClick={onAddBlock}>
-            ➕ Add a block
+            <Icon name="plus" size={17} /> Add a block
           </button>
         </div>
 
@@ -203,7 +204,7 @@ export function EditorScreen({
                 >
                   <TexturePreview texture={block.texture} size={64} label={`${block.name || 'Block'} texture`} />
                   <span className="mod-card__name">{block.name || 'Unnamed block'}</span>
-                  <span className="tiny muted">🧱 Block</span>
+                  <span className="tiny muted"><Icon name="cube" size={14} className="icon--inline" /> Block</span>
                 </button>
                 {confirmDelete === block.id ? (
                   <div className="mod-card__confirm">
@@ -215,14 +216,14 @@ export function EditorScreen({
                         setConfirmDelete(null);
                       }}
                     >
-                      ✓
+                      <Icon name="check" size={17} />
                     </button>
                     <button
                       className="btn btn--ghost btn--icon"
                       aria-label="Keep it"
                       onClick={() => setConfirmDelete(null)}
                     >
-                      ✕
+                      <Icon name="close" size={17} />
                     </button>
                   </div>
                 ) : (
@@ -231,7 +232,7 @@ export function EditorScreen({
                     aria-label={`Delete ${block.name || 'this block'}`}
                     onClick={() => setConfirmDelete(block.id)}
                   >
-                    🗑️
+                    <Icon name="trash" size={17} />
                   </button>
                 )}
               </li>
@@ -245,7 +246,7 @@ export function EditorScreen({
           <h2>Creatures</h2>
           <span className="spacer" />
           <button className="btn btn--sky" onClick={onAddMob}>
-            ➕ Add a creature
+            <Icon name="plus" size={17} /> Add a creature
           </button>
         </div>
 
@@ -266,7 +267,7 @@ export function EditorScreen({
                 >
                   <TexturePreview texture={mob.texture} size={64} label={`${mob.name || 'Creature'} skin`} />
                   <span className="mod-card__name">{mob.name || 'Unnamed creature'}</span>
-                  <span className="tiny muted">🐾 Creature</span>
+                  <span className="tiny muted"><Icon name="paw" size={14} className="icon--inline" /> Creature</span>
                 </button>
                 {confirmDelete === mob.id ? (
                   <div className="mod-card__confirm">
@@ -278,14 +279,14 @@ export function EditorScreen({
                         setConfirmDelete(null);
                       }}
                     >
-                      ✓
+                      <Icon name="check" size={17} />
                     </button>
                     <button
                       className="btn btn--ghost btn--icon"
                       aria-label="Keep it"
                       onClick={() => setConfirmDelete(null)}
                     >
-                      ✕
+                      <Icon name="close" size={17} />
                     </button>
                   </div>
                 ) : (
@@ -294,7 +295,7 @@ export function EditorScreen({
                     aria-label={`Delete ${mob.name || 'this creature'}`}
                     onClick={() => setConfirmDelete(mob.id)}
                   >
-                    🗑️
+                    <Icon name="trash" size={17} />
                   </button>
                 )}
               </li>
@@ -308,7 +309,7 @@ export function EditorScreen({
           <h2>Rules</h2>
           <span className="spacer" />
           <button className="btn btn--sky" onClick={onAddRule}>
-            ➕ Add a rule
+            <Icon name="plus" size={17} /> Add a rule
           </button>
         </div>
 
@@ -338,7 +339,7 @@ export function EditorScreen({
                     </span>
                     <span className="mod-card__name">{rule.name || 'Unnamed rule'}</span>
                     <span className="tiny muted">
-                      {problem ? `⚠️ ${problem}` : actionSpec(rule.action).label}
+                      {problem ?? actionSpec(rule.action).label}
                     </span>
                   </button>
                   {confirmDelete === rule.id ? (
@@ -351,14 +352,14 @@ export function EditorScreen({
                           setConfirmDelete(null);
                         }}
                       >
-                        ✓
+                        <Icon name="check" size={17} />
                       </button>
                       <button
                         className="btn btn--ghost btn--icon"
                         aria-label="Keep it"
                         onClick={() => setConfirmDelete(null)}
                       >
-                        ✕
+                        <Icon name="close" size={17} />
                       </button>
                     </div>
                   ) : (
@@ -367,7 +368,7 @@ export function EditorScreen({
                       aria-label={`Delete ${rule.name || 'this rule'}`}
                       onClick={() => setConfirmDelete(rule.id)}
                     >
-                      🗑️
+                      <Icon name="trash" size={17} />
                     </button>
                   )}
                 </li>
@@ -387,19 +388,21 @@ export function EditorScreen({
           </p>
           {emptyTextures.length > 0 && (
             <p className="warn tiny">
-              ⚠️ {emptyTextures.length === 1 ? 'One thing has' : `${emptyTextures.length} things have`} a blank
+              <Icon name="warning" size={15} className="icon--inline" /> {emptyTextures.length === 1 ? 'One thing has' : `${emptyTextures.length} things have`} a blank
               picture. They’ll be invisible in the game!
             </p>
           )}
           {ruleProblems.size > 0 && (
             <p className="warn tiny">
-              ⚠️ {ruleProblems.size === 1 ? 'One rule isn’t' : `${ruleProblems.size} rules aren’t`} finished
+              <Icon name="warning" size={15} className="icon--inline" /> {ruleProblems.size === 1 ? 'One rule isn’t' : `${ruleProblems.size} rules aren’t`} finished
               yet, so {ruleProblems.size === 1 ? 'it' : 'they'} won’t be in your mod.
             </p>
           )}
         </div>
         <button className="btn btn--big" onClick={onExport} disabled={exporting}>
-          {exporting ? 'Packing…' : '⬇️ Download my mod'}
+          {exporting ? ('Packing…') : (<>
+                <Icon name="download" size={17} /> Download my mod
+              </>)}
         </button>
       </div>
     </div>

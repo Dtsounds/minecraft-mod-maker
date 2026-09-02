@@ -10,6 +10,7 @@ import { VANILLA_ITEMS, VANILLA_GROUPS, lookupVanilla } from '../bedrock/vanilla
 import { recipeHasIngredients } from '../bedrock/recipe';
 import { isTextureEmpty } from '../bedrock/texture';
 import { blockIdentifier } from '../bedrock/block';
+import { Icon, type IconName } from '../components/Icon';
 
 interface Props {
   block: ModBlock;
@@ -22,11 +23,11 @@ interface Props {
 type Step = 'basics' | 'look' | 'breaking' | 'recipe';
 type Face = 'texture' | 'textureTop' | 'textureBottom';
 
-const STEPS: { id: Step; label: string; emoji: string }[] = [
-  { id: 'basics', label: 'Name', emoji: '🏷️' },
-  { id: 'look', label: 'Picture', emoji: '🎨' },
-  { id: 'breaking', label: 'Breaking', emoji: '⛏️' },
-  { id: 'recipe', label: 'Recipe', emoji: '🧪' },
+const STEPS: { id: Step; label: string; icon: IconName }[] = [
+  { id: 'basics', label: 'Name', icon: 'tag' },
+  { id: 'look', label: 'Picture', icon: 'swatch' },
+  { id: 'breaking', label: 'Breaking', icon: 'sliders' },
+  { id: 'recipe', label: 'Recipe', icon: 'grid' },
 ];
 
 export function BlockScreen({ block, items, namespace, onChange, onDone }: Props) {
@@ -62,7 +63,7 @@ export function BlockScreen({ block, items, namespace, onChange, onDone }: Props
     <div className="stack">
       <div className="row">
         <button className="btn btn--ghost" onClick={onDone}>
-          ← Back to my mod
+          <Icon name="arrowLeft" size={17} /> Back to my mod
         </button>
         <span className="spacer" />
         <TexturePreview texture={block.texture} size={48} label="Block preview" />
@@ -77,7 +78,7 @@ export function BlockScreen({ block, items, namespace, onChange, onDone }: Props
             aria-current={step === s.id ? 'step' : undefined}
             onClick={() => setStep(s.id)}
           >
-            <span aria-hidden>{s.emoji}</span>
+            <Icon name={s.icon} size={17} />
             <span>{s.label}</span>
           </button>
         ))}
@@ -126,7 +127,7 @@ export function BlockScreen({ block, items, namespace, onChange, onDone }: Props
 
           <div className="row">
             <button className="btn btn--go" onClick={() => setStep('look')}>
-              Next: draw it →
+              Next: draw it <Icon name="arrowRight" size={17} />
             </button>
           </div>
         </div>
@@ -161,9 +162,9 @@ export function BlockScreen({ block, items, namespace, onChange, onDone }: Props
                 <span className="field__label">{label}</span>
                 <TexturePreview texture={block[face] as Texture} size={96} label={`${label} texture`} />
                 <button className="btn" onClick={() => setDrawing(face)}>
-                  ✏️ Draw {label.toLowerCase()}
+                  <Icon name="pencil" size={17} /> Draw {label.toLowerCase()}
                 </button>
-                {isTextureEmpty(block[face] as Texture) && <p className="warn tiny">⚠️ Blank</p>}
+                {isTextureEmpty(block[face] as Texture) && <p className="warn tiny"><Icon name="warning" size={15} className="icon--inline" /> Blank</p>}
               </div>
             ))}
           </div>
@@ -187,7 +188,7 @@ export function BlockScreen({ block, items, namespace, onChange, onDone }: Props
 
           <div className="row">
             <button className="btn btn--go" onClick={() => setStep('breaking')}>
-              Next: breaking →
+              Next: breaking <Icon name="arrowRight" size={17} />
             </button>
           </div>
         </div>
@@ -229,21 +230,21 @@ export function BlockScreen({ block, items, namespace, onChange, onDone }: Props
                 aria-pressed={drop.kind === 'self'}
                 onClick={() => patch({ drop: { kind: 'self' } })}
               >
-                🧱 The block
+                <Icon name="cube" /> The block
               </button>
               <button
                 className={`btn ${drop.kind === 'nothing' ? '' : 'btn--ghost'}`}
                 aria-pressed={drop.kind === 'nothing'}
                 onClick={() => patch({ drop: { kind: 'nothing' } })}
               >
-                🚫 Nothing
+                <Icon name="ban" /> Nothing
               </button>
               <button
                 className={`btn ${drop.kind === 'vanilla' ? '' : 'btn--ghost'}`}
                 aria-pressed={drop.kind === 'vanilla'}
                 onClick={() => patch({ drop: { kind: 'vanilla', id: 'minecraft:diamond' } })}
               >
-                💎 A Minecraft item
+                <Icon name="gem" /> A Minecraft item
               </button>
               {items.length > 0 && (
                 <button
@@ -251,7 +252,7 @@ export function BlockScreen({ block, items, namespace, onChange, onDone }: Props
                   aria-pressed={drop.kind === 'myItem'}
                   onClick={() => patch({ drop: { kind: 'myItem', itemId: items[0]!.id } })}
                 >
-                  ✨ One of my items
+                  <Icon name="star" /> One of my items
                 </button>
               )}
             </div>
@@ -299,7 +300,7 @@ export function BlockScreen({ block, items, namespace, onChange, onDone }: Props
 
           <div className="row">
             <button className="btn btn--go" onClick={() => setStep('recipe')}>
-              Next: recipe →
+              Next: recipe <Icon name="arrowRight" size={17} />
             </button>
           </div>
         </div>
@@ -329,7 +330,7 @@ export function BlockScreen({ block, items, namespace, onChange, onDone }: Props
                 onCountChange={(count) => patch({ recipe: { ...block.recipe, count } })}
               />
               {!recipeHasIngredients(block.recipe.grid) && (
-                <p className="warn tiny">⚠️ The grid is empty, so no recipe will be added.</p>
+                <p className="warn tiny"><Icon name="warning" size={15} className="icon--inline" /> The grid is empty, so no recipe will be added.</p>
               )}
             </>
           )}
@@ -367,14 +368,14 @@ export function BlockScreen({ block, items, namespace, onChange, onDone }: Props
                 ))}
               </div>
               {!lookupVanilla(block.smelting.input) && (
-                <p className="warn tiny">⚠️ Pick something to cook, or no furnace recipe will be added.</p>
+                <p className="warn tiny"><Icon name="warning" size={15} className="icon--inline" /> Pick something to cook, or no furnace recipe will be added.</p>
               )}
             </div>
           )}
 
           <div className="row">
             <button className="btn btn--go btn--big" onClick={onDone}>
-              ✓ All done
+              <Icon name="check" size={17} /> All done
             </button>
           </div>
         </div>

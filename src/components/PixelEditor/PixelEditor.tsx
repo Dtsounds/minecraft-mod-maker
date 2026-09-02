@@ -13,6 +13,7 @@ import {
   setPixel,
 } from './tools';
 import { useUndoStack } from './useUndoStack';
+import { Icon } from '../Icon';
 
 /**
  * A map of what the canvas means, for textures that wrap onto something.
@@ -285,7 +286,8 @@ export function PixelEditor({
           Cancel
         </button>
         <button className="btn btn--go" onClick={() => onSave(current)}>
-          ✓ Done
+          <Icon name="check" size={17} />
+          Done
         </button>
       </div>
 
@@ -302,7 +304,7 @@ export function PixelEditor({
                 title={t.hint}
                 onClick={() => setTool(t.id)}
               >
-                <span aria-hidden>{t.emoji}</span>
+                <Icon name={t.icon} />
                 <span className="tiny">{t.label}</span>
               </button>
             ))}
@@ -318,7 +320,7 @@ export function PixelEditor({
               />
               <span className="spacer" />
               <label className="btn btn--ghost btn--icon" title="Pick any colour">
-                🎨
+                <Icon name="palette" />
                 <input
                   type="color"
                   className="sr-only"
@@ -354,19 +356,23 @@ export function PixelEditor({
 
           <div className="row">
             <button className="btn btn--ghost" onClick={history.undo} disabled={!history.canUndo}>
-              ↩️ Undo
+              <Icon name="undo" size={17} />
+              Undo
             </button>
             <button className="btn btn--ghost" onClick={history.redo} disabled={!history.canRedo}>
-              ↪️ Redo
+              <Icon name="redo" size={17} />
+              Redo
             </button>
           </div>
 
           <div className="row">
             <button className="btn btn--ghost" onClick={() => history.commit(mirrorHorizontal(current))}>
-              🪞 Mirror
+              <Icon name="mirror" size={17} />
+              Mirror
             </button>
             <button className="btn btn--danger" onClick={() => history.commit(clearTexture(current))}>
-              🗑️ Clear
+              <Icon name="trash" size={17} />
+              Clear
             </button>
           </div>
 
@@ -391,7 +397,8 @@ export function PixelEditor({
 
           {stage && (
             <button className="btn btn--ghost" onClick={() => setSheetOpen(true)}>
-              🗺️ Show the flat picture
+              <Icon name="grid" size={17} />
+              Show the flat picture
             </button>
           )}
         </div>
@@ -404,7 +411,8 @@ export function PixelEditor({
               <h3>The flat picture</h3>
               <span className="spacer" />
               <button className="btn btn--go" onClick={() => setSheetOpen(false)}>
-                ✓ Close
+                <Icon name="check" size={17} />
+                Close
               </button>
             </div>
             <p className="tiny muted">

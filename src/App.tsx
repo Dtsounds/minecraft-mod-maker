@@ -21,6 +21,7 @@ import {
 } from './storage/backup';
 import { uuid } from './bedrock/ids';
 import type { ModBlock, ModItem, ModMob, ModProject, ModRule } from './bedrock/types';
+import { Icon } from './components/Icon';
 
 type Screen =
   | { name: 'home' }
@@ -283,7 +284,7 @@ export default function App() {
       <header className="topbar">
         <div className="topbar__brand">
           <span className="topbar__logo" aria-hidden>
-            ⛏️
+            <Icon name="cube" size={18} />
           </span>
           Bedrock Mod Maker
         </div>

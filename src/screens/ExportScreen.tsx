@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ModProject } from '../bedrock/types';
 import { TexturePreview } from '../components/TexturePreview';
+import { Icon, type IconName } from '../components/Icon';
 
 interface Props {
   project: ModProject;
@@ -15,7 +16,7 @@ type PlatformId = 'windows' | 'mobile' | 'chromebook' | 'console';
 interface Platform {
   id: PlatformId;
   label: string;
-  emoji: string;
+  icon: IconName;
   steps: string[];
   note?: string;
 }
@@ -33,7 +34,7 @@ const PLATFORMS: Platform[] = [
   {
     id: 'windows',
     label: 'Windows PC',
-    emoji: '💻',
+    icon: 'monitor',
     steps: [
       'Find the file you just downloaded. It’s usually in your Downloads folder.',
       'Double-click it.',
@@ -44,7 +45,7 @@ const PLATFORMS: Platform[] = [
   {
     id: 'mobile',
     label: 'Phone or Tablet',
-    emoji: '📱',
+    icon: 'phone',
     steps: [
       'Open your Files or Downloads app.',
       'Tap the file you just downloaded.',
@@ -56,7 +57,7 @@ const PLATFORMS: Platform[] = [
   {
     id: 'chromebook',
     label: 'Chromebook',
-    emoji: '🖥️',
+    icon: 'monitor',
     steps: [
       'Open the Files app and find your download.',
       'Move the file into the Play files or Linux files folder so Minecraft can see it.',
@@ -67,7 +68,7 @@ const PLATFORMS: Platform[] = [
   {
     id: 'console',
     label: 'Xbox / PlayStation / Switch',
-    emoji: '🎮',
+    icon: 'gamepad',
     steps: [
       'Consoles can’t open add-on files directly.',
       'Import your mod on a PC or phone signed in to the same Microsoft account.',
@@ -91,17 +92,19 @@ export function ExportScreen({ project, fileName, onBack, onDownloadAgain, busy 
       <div className="card celebrate">
         <TexturePreview texture={project.icon} size={96} label={`${project.name} icon`} />
         <div className="stack celebrate__text">
-          <h1>🎉 Your mod is ready!</h1>
+          <h1>Your mod is ready</h1>
           <p>
             <strong>{fileName}</strong> just downloaded
             {itemCount > 0 && <> with {itemCount === 1 ? '1 item' : `${itemCount} items`} inside</>}.
           </p>
           <div className="row">
             <button className="btn btn--ghost" onClick={onDownloadAgain} disabled={busy}>
-              {busy ? 'Packing…' : '⬇️ Download it again'}
+              {busy ? ('Packing…') : (<>
+              <Icon name="download" size={17} /> Download it again
+            </>)}
             </button>
             <button className="btn btn--go" onClick={onBack}>
-              ← Keep editing
+              <Icon name="arrowLeft" size={17} /> Keep editing
             </button>
           </div>
         </div>
@@ -119,9 +122,7 @@ export function ExportScreen({ project, fileName, onBack, onDownloadAgain, busy 
               aria-pressed={platform === p.id}
               onClick={() => setPlatform(p.id)}
             >
-              <span className="platform__emoji" aria-hidden>
-                {p.emoji}
-              </span>
+              <Icon name={p.icon} size={26} />
               <span>{p.label}</span>
             </button>
           ))}
@@ -138,7 +139,7 @@ export function ExportScreen({ project, fileName, onBack, onDownloadAgain, busy 
           ))}
         </ol>
 
-        {active.note && <p className="note">💡 {active.note}</p>}
+        {active.note && <p className="note"><Icon name="bulb" size={15} className="icon--inline" /> {active.note}</p>}
       </section>
 
       <section className="card stack">
@@ -184,7 +185,7 @@ export function ExportScreen({ project, fileName, onBack, onDownloadAgain, busy 
           </li>
         </ol>
         <p className="note">
-          💡 <strong>If your stuff is invisible</strong>, it’s almost always the resource pack. Go back into{' '}
+          <Icon name="bulb" size={15} className="icon--inline" /> <strong>If your stuff is invisible</strong>, it’s almost always the resource pack. Go back into{' '}
           <strong>Resource Packs</strong> and make sure <strong>{project.name}</strong> is switched on — the
           behavior pack alone gives you the items, but the resource pack is what gives them their pictures.
         </p>

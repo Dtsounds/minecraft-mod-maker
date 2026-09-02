@@ -50,6 +50,11 @@
 >   it that map onto nothing, lets a kid paint one part at a time, and shows
 >   the assembled creature in 3D beside the grid, updating as they paint. All
 >   of it derived from the rig by `src/bedrock/mobUv.ts`.
+> - **Restyled as a creator tool**, not a kids' toy: graphite, one amber
+>   accent, hairlines, an inline-SVG icon set in place of emoji on every
+>   control. Game pictograms (items, mobs, presets) stay as emoji deliberately.
+>   The page also uses the window now — it was capped at 1180px, and the 3D
+>   stage was a fixed 420px however big the screen was.
 > - **Picking a body part zooms the camera to it**, so painting a chicken's
 >   foot is not aiming at four pixels. The rest fades and stops taking paint.
 > - **You can paint on the creature itself, and that is now the whole page.**

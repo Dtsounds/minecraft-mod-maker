@@ -3,6 +3,7 @@ import type { ModProject } from '../bedrock/types';
 import { TexturePreview } from '../components/TexturePreview';
 import { describeContents } from '../bedrock/project';
 import { BACKUP_EXTENSION } from '../storage/backup';
+import { Icon } from '../components/Icon';
 
 interface Props {
   projects: ModProject[];
@@ -52,15 +53,15 @@ export function HomeScreen({
           </p>
           <div className="row">
             <button className="btn btn--go btn--big" onClick={onNew}>
-              ✨ Make a New Mod
+              <Icon name="plus" size={19} /> Make a New Mod
             </button>
             <button className="btn btn--ghost" onClick={() => fileInput.current?.click()}>
-              📂 Open a saved mod
+              <Icon name="folder" size={17} /> Open a saved mod
             </button>
           </div>
         </div>
         <div className="hero__art" aria-hidden>
-          ⛏️
+          <Icon name="cube" size={72} />
         </div>
       </div>
 
@@ -80,8 +81,8 @@ export function HomeScreen({
         }}
       />
 
-      {restoreMessage && <p className="ok tiny">✅ {restoreMessage}</p>}
-      {restoreError && <p className="warn tiny">⚠️ {restoreError}</p>}
+      {restoreMessage && <p className="ok tiny"><Icon name="check" size={15} className="icon--inline" /> {restoreMessage}</p>}
+      {restoreError && <p className="warn tiny"><Icon name="warning" size={15} className="icon--inline" /> {restoreError}</p>}
 
       <section className="stack">
         <h2>My Mods</h2>
@@ -113,7 +114,7 @@ export function HomeScreen({
                   title="Save to a file"
                   onClick={() => void onBackup(project)}
                 >
-                  💾
+                  <Icon name="save" size={17} />
                 </button>
 
                 {confirmDelete === project.id ? (
@@ -126,14 +127,14 @@ export function HomeScreen({
                         setConfirmDelete(null);
                       }}
                     >
-                      ✓
+                      <Icon name="check" size={17} />
                     </button>
                     <button
                       className="btn btn--ghost btn--icon"
                       aria-label={`Keep ${project.name}`}
                       onClick={() => setConfirmDelete(null)}
                     >
-                      ✕
+                      <Icon name="close" size={17} />
                     </button>
                   </div>
                 ) : (
@@ -142,7 +143,7 @@ export function HomeScreen({
                     aria-label={`Delete ${project.name}`}
                     onClick={() => setConfirmDelete(project.id)}
                   >
-                    🗑️
+                    <Icon name="trash" size={17} />
                   </button>
                 )}
               </li>
@@ -152,7 +153,7 @@ export function HomeScreen({
 
         {projects.length > 0 && (
           <p className="tiny muted">
-            💾 saves a mod to a file you can keep, copy to another computer, or open again later.
+            Saving writes a mod to a file you can keep, copy to another computer, or open again later.
           </p>
         )}
       </section>

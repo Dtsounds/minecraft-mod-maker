@@ -9,6 +9,7 @@ import { SWATCHES, applySwatch } from '../components/swatches';
 import { recipeHasIngredients } from '../bedrock/recipe';
 import { isTextureEmpty } from '../bedrock/texture';
 import { itemIdentifier } from '../bedrock/item';
+import { Icon, type IconName } from '../components/Icon';
 
 interface Props {
   item: ModItem;
@@ -19,11 +20,11 @@ interface Props {
 
 type Step = 'basics' | 'look' | 'stats' | 'recipe';
 
-const STEPS: { id: Step; label: string; emoji: string }[] = [
-  { id: 'basics', label: 'Name', emoji: '🏷️' },
-  { id: 'look', label: 'Picture', emoji: '🎨' },
-  { id: 'stats', label: 'Powers', emoji: '💪' },
-  { id: 'recipe', label: 'Recipe', emoji: '🧪' },
+const STEPS: { id: Step; label: string; icon: IconName }[] = [
+  { id: 'basics', label: 'Name', icon: 'tag' },
+  { id: 'look', label: 'Picture', icon: 'swatch' },
+  { id: 'stats', label: 'Powers', icon: 'bolt' },
+  { id: 'recipe', label: 'Recipe', icon: 'grid' },
 ];
 
 /**
@@ -61,7 +62,7 @@ export function ItemScreen({ item, namespace, onChange, onDone }: Props) {
     <div className="stack">
       <div className="row">
         <button className="btn btn--ghost" onClick={onDone}>
-          ← Back to my mod
+          <Icon name="arrowLeft" size={17} /> Back to my mod
         </button>
         <span className="spacer" />
         <TexturePreview texture={item.texture} size={48} label="Item preview" />
@@ -76,7 +77,7 @@ export function ItemScreen({ item, namespace, onChange, onDone }: Props) {
             aria-current={step === s.id ? 'step' : undefined}
             onClick={() => setStep(s.id)}
           >
-            <span aria-hidden>{s.emoji}</span>
+            <Icon name={s.icon} size={17} />
             <span>{s.label}</span>
           </button>
         ))}
@@ -129,7 +130,7 @@ export function ItemScreen({ item, namespace, onChange, onDone }: Props) {
 
           <div className="row">
             <button className="btn btn--go" onClick={() => setStep('look')}>
-              Next: draw it →
+              Next: draw it <Icon name="arrowRight" size={17} />
             </button>
           </div>
         </div>
@@ -142,10 +143,10 @@ export function ItemScreen({ item, namespace, onChange, onDone }: Props) {
             <TexturePreview texture={item.texture} size={128} label="Item texture" />
             <div className="stack">
               <button className="btn btn--big" onClick={() => setDrawing(true)}>
-                ✏️ Draw it myself
+                <Icon name="pencil" size={17} /> Draw it myself
               </button>
               {isTextureEmpty(item.texture) && (
-                <p className="warn tiny">⚠️ It’s blank right now — it’ll be invisible in the game!</p>
+                <p className="warn tiny"><Icon name="warning" size={15} className="icon--inline" /> It’s blank right now — it’ll be invisible in the game!</p>
               )}
             </div>
           </div>
@@ -169,7 +170,7 @@ export function ItemScreen({ item, namespace, onChange, onDone }: Props) {
 
           <div className="row">
             <button className="btn btn--go" onClick={() => setStep('stats')}>
-              Next: powers →
+              Next: powers <Icon name="arrowRight" size={17} />
             </button>
           </div>
         </div>
@@ -235,7 +236,7 @@ export function ItemScreen({ item, namespace, onChange, onDone }: Props) {
 
           {item.kind === 'bow' && (
             <p className="note">
-              💡 Your bow shoots normal arrows, so keep some in your bag. In Creative you don’t need any.
+              <Icon name="bulb" size={15} className="icon--inline" /> Your bow shoots normal arrows, so keep some in your bag. In Creative you don’t need any.
             </p>
           )}
 
@@ -252,7 +253,7 @@ export function ItemScreen({ item, namespace, onChange, onDone }: Props) {
 
           <div className="row">
             <button className="btn btn--go" onClick={() => setStep('recipe')}>
-              Next: recipe →
+              Next: recipe <Icon name="arrowRight" size={17} />
             </button>
           </div>
         </div>
@@ -289,7 +290,7 @@ export function ItemScreen({ item, namespace, onChange, onDone }: Props) {
               />
               {!recipeHasIngredients(item.recipe.grid) && (
                 <p className="warn tiny">
-                  ⚠️ The grid is empty, so no recipe will be added. Put something in a square!
+                  <Icon name="warning" size={15} className="icon--inline" /> The grid is empty, so no recipe will be added. Put something in a square!
                 </p>
               )}
             </>
@@ -297,7 +298,7 @@ export function ItemScreen({ item, namespace, onChange, onDone }: Props) {
 
           <div className="row">
             <button className="btn btn--go btn--big" onClick={onDone}>
-              ✓ All done
+              <Icon name="check" size={17} /> All done
             </button>
           </div>
         </div>

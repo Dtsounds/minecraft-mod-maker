@@ -189,7 +189,7 @@ describe('block creator, driven through the UI', () => {
     await user.type(screen.getByLabelText(/name it/i), 'Void Stone');
     await user.click(screen.getByRole('button', { name: /next: draw it/i }));
     await user.click(screen.getByRole('button', { name: /next: breaking/i }));
-    await user.click(screen.getByRole('button', { name: /🚫 Nothing/ }));
+    await user.click(screen.getByRole('button', { name: /^Nothing$/ }));
     await user.click(screen.getByRole('button', { name: /back to my mod/i }));
 
     const addon = await download(user, capture);
