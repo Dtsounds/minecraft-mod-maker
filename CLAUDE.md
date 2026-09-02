@@ -170,10 +170,11 @@ Painting goes back through `PixelEditor`'s `stage` render prop, which hands out
 stack rather than a second copy of them. Passing a `stage` also makes the flat
 sheet fold away behind a button and reopen as a large pop-up: for a creature
 the sheet is the fallback for fiddly work, not the thing to look at. Without a
-`stage` — items, blocks — the editor is exactly what it always was. `paint` carries a `connect` flag: two
-points on the same face join up, points on different faces do not, because
-interpolating between them would draw a line across whatever sits between the
-two rectangles on the flat sheet.
+`stage` — items, blocks — the editor is exactly what it always was.
+
+`paint` carries a `connect` flag: two points on the same face join up, points
+on different faces do not, because interpolating between them would draw a line
+across whatever sits between the two rectangles on the flat sheet.
 
 Orientation is pinned by tests, because upside-down and inside-out are the two
 ways this goes wrong and no texture assertion would notice either: Minecraft's
