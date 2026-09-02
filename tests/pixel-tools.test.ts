@@ -116,3 +116,43 @@ describe('clear and mirror', () => {
     expect(getPixel(m, 0, 0)).toBe(RED);
   });
 });
+
+describe('a bounded flood fill', () => {
+  // A creature's skin is rectangles of face separated by transparent gaps, and
+  // transparent is a colour the bucket will happily cross. Unbounded, one tap
+  // on a blank skin painted the entire animal.
+  const blank = (size: number): Texture => ({
+    size,
+    pixels: new Array(size * size).fill(null),
+  });
+
+  it('stays inside the rectangle it was given', () => {
+    const filled = floodFill(blank(8), 2, 2, '#ff0000', { x: 1, y: 1, w: 3, h: 3 });
+    const painted = filled.pixels
+      .map((p, i) => (p ? { x: i % 8, y: Math.floor(i / 8) } : null))
+      .filter(Boolean) as { x: number; y: number }[];
+
+    expect(painted).toHaveLength(9);
+    for (const { x, y } of painted) {
+      expect(x).toBeGreaterThanOrEqual(1);
+      expect(x).toBeLessThanOrEqual(3);
+      expect(y).toBeGreaterThanOrEqual(1);
+      expect(y).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it('still floods the whole canvas when no rectangle is given', () => {
+    // An item's texture is a picture, not a folded-up sheet.
+    expect(floodFill(blank(8), 0, 0, '#ff0000').pixels.every((p) => p === '#ff0000')).toBe(true);
+  });
+
+  it('does nothing when the start is outside the rectangle', () => {
+    const before = blank(8);
+    expect(floodFill(before, 7, 7, '#ff0000', { x: 0, y: 0, w: 2, h: 2 })).toBe(before);
+  });
+
+  it('clamps a rectangle that hangs off the canvas', () => {
+    const filled = floodFill(blank(4), 3, 3, '#ff0000', { x: 2, y: 2, w: 99, h: 99 });
+    expect(filled.pixels.filter(Boolean)).toHaveLength(4);
+  });
+});

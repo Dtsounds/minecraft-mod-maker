@@ -82,14 +82,43 @@ export function drawLine(
   return result;
 }
 
-/** Flood fill the contiguous region of matching colour, 4-way connected. */
-export function floodFill(texture: Texture, x: number, y: number, color: string | null): Texture {
+/** A rectangle a fill may not spill out of. */
+export interface FillBounds {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * Flood fill the contiguous region of matching colour, 4-way connected.
+ *
+ * `bounds` keeps the flood inside one rectangle, and a creature's skin needs
+ * it. On that sheet a face is a rectangle among other rectangles, the gaps
+ * between them are transparent, and transparent is a colour a fill will happily
+ * cross: on a blank skin every pixel matches every other one, so a single tap
+ * of the bucket painted the entire creature. Bounded, it fills the face that
+ * was clicked, which is what "fill" means when you are pointing at a nose.
+ */
+export function floodFill(
+  texture: Texture,
+  x: number,
+  y: number,
+  color: string | null,
+  bounds?: FillBounds,
+): Texture {
   if (!inBounds(texture, x, y)) return texture;
   const target = getPixel(texture, x, y);
   if (target === color) return texture;
 
-  const pixels = texture.pixels.slice();
   const { size } = texture;
+  const left = bounds ? Math.max(0, bounds.x) : 0;
+  const top = bounds ? Math.max(0, bounds.y) : 0;
+  const right = bounds ? Math.min(size - 1, bounds.x + bounds.w - 1) : size - 1;
+  const bottom = bounds ? Math.min(size - 1, bounds.y + bounds.h - 1) : size - 1;
+  if (x < left || x > right || y < top || y > bottom) return texture;
+
+  const pixels = texture.pixels.slice();
   const stack: number[] = [y * size + x];
   const seen = new Uint8Array(size * size);
 
@@ -102,10 +131,10 @@ export function floodFill(texture: Texture, x: number, y: number, color: string 
 
     const px = index % size;
     const py = Math.floor(index / size);
-    if (px > 0) stack.push(index - 1);
-    if (px < size - 1) stack.push(index + 1);
-    if (py > 0) stack.push(index - size);
-    if (py < size - 1) stack.push(index + size);
+    if (px > left) stack.push(index - 1);
+    if (px < right) stack.push(index + 1);
+    if (py > top) stack.push(index - size);
+    if (py < bottom) stack.push(index + size);
   }
 
   return { size, pixels };

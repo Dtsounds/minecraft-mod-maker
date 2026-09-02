@@ -96,6 +96,16 @@ export function PixelEditor({
     reset(normalizeTexture(texture));
   }, [texture, reset]);
 
+  // A guide only makes sense against the canvas it was built for. If a resize
+  // ever put the two out of step, showing nothing beats showing a lie.
+  const map = guide && guide.used.length === current.size * current.size ? guide : undefined;
+
+  const areaAt = useCallback(
+    (x: number, y: number) =>
+      map?.areas.find((a) => x >= a.x && x < a.x + a.w && y >= a.y && y < a.y + a.h) ?? null,
+    [map],
+  );
+
   const applyAt = useCallback(
     (x: number, y: number, continuing: boolean, connect = true) => {
       if (tool === 'eyedropper') {
@@ -105,6 +115,15 @@ export function PixelEditor({
       }
 
       if (tool === 'fill') {
+        // On a creature, a fill belongs to the face that was clicked. Without
+        // that bound it crosses the transparent gaps between faces and paints
+        // the whole animal — and on dead space it would scribble thousands of
+        // pixels that show nowhere and then have to be saved.
+        if (map) {
+          const area = areaAt(x, y);
+          if (area) history.commit(floodFill(current, x, y, color, area));
+          return;
+        }
         history.commit(floodFill(current, x, y, color));
         return;
       }
@@ -119,7 +138,7 @@ export function PixelEditor({
       if (continuing) history.replace(next);
       else history.commit(next);
     },
-    [tool, color, current, history],
+    [tool, color, current, history, map, areaAt],
   );
 
   const handleDown = (x: number, y: number) => {
@@ -159,16 +178,6 @@ export function PixelEditor({
     if (size === current.size) return;
     history.commit(resizeTexture(current, size));
   };
-
-  // A guide only makes sense against the canvas it was built for. If a resize
-  // ever put the two out of step, showing nothing beats showing a lie.
-  const map = guide && guide.used.length === current.size * current.size ? guide : undefined;
-
-  const areaAt = useCallback(
-    (x: number, y: number) =>
-      map?.areas.find((a) => x >= a.x && x < a.x + a.w && y >= a.y && y < a.y + a.h) ?? null,
-    [map],
-  );
 
   const readout = useMemo(() => {
     if (!map) return null;

@@ -8,7 +8,7 @@
 > **Phases 1–4 are built and verified in the real game.** Items, blocks,
 > creatures, recipes and rules all work on-device. The sections
 > below are the original plan, kept for the reasoning — read this box for what
-> is actually true. 295 tests.
+> is actually true. 301 tests.
 >
 > **Phase 4 shipped as a rule builder, not Blockly.** "When [trigger] → do
 > [action]", six triggers and eight actions, built from presets like every

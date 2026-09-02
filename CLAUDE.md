@@ -182,6 +182,13 @@ working inside a close-up. A faded part also stops being a painting target
 while another is framed, or the scenery takes the strokes meant for the
 close-up.
 
+The bucket takes a bounds rectangle on a creature, and must. A skin is faces
+separated by transparent gaps, transparent is a colour a flood crosses, and on
+a blank skin every pixel matches every other one — so one tap of the bucket
+painted the whole animal. Bounded to the clicked face it does what a kid means.
+Items and blocks pass no bounds and flood the whole picture, which is right
+there.
+
 Contrast is deliberate, not decoration. The stage is a lit gradient rather than
 a dark panel, each face carries a fixed light/dark overlay the way the game
 shades block faces, and an unpainted pixel is a faint ghost instead of nothing
@@ -236,7 +243,7 @@ do not use.
 
 ## Testing
 
-`npm test` — 295 tests. `npm run build`, `npx tsc -b --noEmit`.
+`npm test` — 301 tests. `npm run build`, `npx tsc -b --noEmit`.
 
 The suite verifies our bytes against our own understanding, which is *not* the
 same as the game agreeing: it passed cleanly through four real on-device bugs.

@@ -279,6 +279,57 @@ describe('painting a creature', () => {
     expect(paintable('body')).toBe(0);
   }, 40000);
 
+  it('fills one face, not the whole creature', async () => {
+    // The bucket used to paint the entire animal: a blank skin is transparent
+    // everywhere, the gaps between faces are transparent too, and a flood
+    // crosses them happily. Reported from real use.
+    const user = userEvent.setup();
+    render(<App />);
+    await openPainter(user);
+
+    const world = screen.getByTestId('mob-preview-world');
+    const faceTexels = (bone: string, face: string) =>
+      [
+        ...(world.querySelector(`[data-bone="${bone}"] [data-face="${face}"]`) as HTMLElement)
+          .querySelectorAll<HTMLElement>('.mob-preview__texel'),
+      ];
+
+    await user.click(screen.getByRole('button', { name: /fill/i }));
+    await user.click(screen.getByRole('button', { name: /colour #c22036/i }));
+    await user.click(faceTexels('head', 'front')[0] as HTMLElement);
+
+    const red = 'rgb(194, 32, 54)';
+    const front = faceTexels('head', 'front');
+    // The whole face except its two eyes: a flood still stops at a colour it
+    // does not match, which is the half of the bucket that was never broken.
+    expect(front.filter((t) => t.style.background === red)).toHaveLength(front.length - 2);
+    // Everything else is untouched — the side of the same box included.
+    expect(faceTexels('head', 'left').some((t) => t.style.background === red)).toBe(false);
+    expect(faceTexels('body', 'front').some((t) => t.style.background === red)).toBe(false);
+    expect(faceTexels('leg0', 'front').some((t) => t.style.background === red)).toBe(false);
+  }, 40000);
+
+  it('leaves the bucket alone for an item, where the picture is the whole thing', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(await screen.findByRole('button', { name: /make a new mod/i }));
+    await user.type(screen.getByLabelText(/what’s it called/i), 'Bucket Mod');
+    await user.click(screen.getByRole('button', { name: /let’s go/i }));
+    await user.click(await screen.findByRole('button', { name: /add an item/i }));
+    await user.type(screen.getByLabelText(/name it/i), 'Rock');
+    await user.click(screen.getByRole('button', { name: /next: draw it/i }));
+    await user.click(screen.getByRole('button', { name: /draw|paint/i }));
+    await screen.findByRole('grid', { name: /drawing grid/i });
+
+    await user.click(screen.getByRole('button', { name: /fill/i }));
+    await user.click(screen.getByRole('button', { name: /colour #c22036/i }));
+    await user.click(screen.getAllByRole('gridcell')[0] as HTMLElement);
+
+    // A blank item texture floods completely, which is what a kid wants there.
+    const cells = screen.getAllByRole('gridcell');
+    expect(cells.every((c) => c.getAttribute('aria-label')?.includes('#c22036'))).toBe(true);
+  }, 40000);
+
   it('shuts the flat picture again with Escape, or the close button', async () => {
     const user = userEvent.setup();
     render(<App />);
