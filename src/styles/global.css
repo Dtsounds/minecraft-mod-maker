@@ -13,7 +13,7 @@
   --panel: #1b1e23;
   --panel-2: #23272e;
   --ink: #e9ecf1;
-  --ink-dim: #99a2ae;
+  --ink-dim: #aab3bf;
 
   /* Two hairlines do all the separating work the bevels used to do. */
   --line: #ffffff14;
@@ -1529,8 +1529,15 @@ body {
   border-radius: var(--radius-sm);
   background: var(--panel-2);
   color: var(--ink);
-  font-weight: 550;
-  letter-spacing: 0.01em;
+  /* 600, not 550: Segoe UI has no 550 face, so a browser rounds it DOWN to
+     regular and every button in the app renders thin. Only variable fonts
+     honour in-between weights, and this stack is not one. */
+  font-weight: 600;
+  font-size: 1.12rem;
+  /* Was 22px each side, which left the label stranded in the middle of a
+     wide button. The text should be most of what you see. */
+  padding: 0 16px;
+  letter-spacing: 0.005em;
   box-shadow: none;
   display: inline-flex;
   align-items: center;
@@ -1556,7 +1563,17 @@ body {
   background: var(--accent);
   border-color: #00000038;
   color: var(--accent-ink);
-  font-weight: 650;
+  font-weight: 700;
+}
+
+.btn--big {
+  min-height: 56px;
+  font-size: 1.32rem;
+  padding: 0 22px;
+}
+
+.btn--icon {
+  padding: 0;
 }
 
 .btn--go:hover:not(:disabled),
@@ -1568,7 +1585,9 @@ body {
 .btn--ghost {
   background: transparent;
   border-color: var(--line-strong);
-  color: var(--ink-dim);
+  /* Full ink. A secondary button is quieter because it has no fill, not
+     because its label is greyed out. */
+  color: var(--ink);
 }
 
 .btn--ghost:hover:not(:disabled) {
@@ -1644,10 +1663,20 @@ body {
 }
 
 .tool {
-  min-height: 54px;
-  gap: 5px;
-  font-weight: 500;
+  min-height: 56px;
+  gap: 4px;
+  font-weight: 600;
   font-size: 1rem;
+  padding: 6px 8px;
+}
+
+/* A tool's label is a label, not fine print. `.tiny` is doing double duty
+   across the app, so the control sets its own size rather than shrinking. */
+.tool .tiny,
+.part-row .tool .tiny {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.005em;
 }
 
 .input,
@@ -1698,8 +1727,9 @@ body {
 /* --- Type --------------------------------------------------------- */
 
 html {
-  /* 18px was set for an eight-year-old at arm's length. This is a tool now. */
-  font-size: 16.5px;
+  /* 18px was set for an eight-year-old at arm's length, and 16.5 undershot
+     the other way. */
+  font-size: 17px;
 }
 
 h1,
@@ -1711,34 +1741,35 @@ h3 {
 }
 
 h1 {
-  font-size: 1.6rem;
+  font-size: 1.65rem;
 }
 
 h2 {
-  font-size: 1.22rem;
+  font-size: 1.3rem;
 }
 
 h3 {
-  font-size: 1.02rem;
+  font-size: 1.08rem;
 }
 
-/* Micro-labels. The thing that most makes an interface look considered. */
+/* Micro-labels. The thing that most makes an interface look considered —
+   but small caps at 0.7rem is a caption, not a label anyone can read. */
 .field__label,
 .step__label {
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 0.7rem;
-  font-weight: 600;
+  letter-spacing: 0.09em;
+  font-size: 0.78rem;
+  font-weight: 700;
   color: var(--ink-dim);
 }
 
 .tiny {
-  font-size: 0.82rem;
+  font-size: 0.92rem;
 }
 
 .field__hint,
 .kind__blurb {
-  font-size: 0.85rem;
+  font-size: 0.94rem;
   color: var(--ink-dim);
 }
 
@@ -1772,8 +1803,8 @@ h3 {
 /* Part buttons are words now, so they need to look like a segmented control
    rather than a tool with a missing picture. */
 .part-row .tool {
-  min-height: 40px;
-  padding: 0 10px;
+  min-height: 44px;
+  padding: 0 12px;
 }
 
 /* Icons inside a stacked control sit above their label, and want to be the
