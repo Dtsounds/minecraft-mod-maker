@@ -1,4 +1,4 @@
-import { buildBehaviorManifest, buildResourceManifest } from './manifest';
+import { buildBehaviorManifest, buildResourceManifest, packDescription } from './manifest';
 import { buildItemJson, itemShortName } from './item';
 import { buildBlockJson, buildBlockLootTable, blockShortName } from './block';
 import { buildRecipeJson, buildBlockRecipeJson, buildSmeltingRecipeJson } from './recipe';
@@ -100,7 +100,7 @@ export function buildAddon(project: ModProject, options: BuildOptions = {}): Bui
     textureData[identifier] = { textures: `textures/items/${shortName}` };
 
     // Verified key shape: `item.<namespace>:<id>=Display Name` (no `.name`).
-    langLines.push(`item.${identifier}=${sanitizeLangValue(item.name)}`);
+    langLines.push(`item.${identifier}=${sanitizeLangValue(item.name, 'Unnamed item')}`);
   }
 
   // --- Blocks --------------------------------------------------------------
@@ -181,7 +181,7 @@ export function buildAddon(project: ModProject, options: BuildOptions = {}): Bui
     }
     // Blocks use `tile.<id>.name` — note both the `tile.` prefix and the
     // `.name` suffix, neither of which items use.
-    langLines.push(`tile.${identifier}.name=${sanitizeLangValue(block.name)}`);
+    langLines.push(`tile.${identifier}.name=${sanitizeLangValue(block.name, 'Unnamed block')}`);
   }
 
   // --- Mobs ----------------------------------------------------------------
@@ -236,10 +236,9 @@ export function buildAddon(project: ModProject, options: BuildOptions = {}): Bui
     binary(`${rp}/textures/entity/${shortName}.png`, textureToPng(mob.texture));
 
     // Entities use `entity.<id>.name`, and the spawn egg has its own key.
-    langLines.push(`entity.${identifier}.name=${sanitizeLangValue(mob.name)}`);
-    langLines.push(
-      `item.spawn_egg.entity.${identifier}.name=Spawn ${sanitizeLangValue(mob.name)}`,
-    );
+    const mobLabel = sanitizeLangValue(mob.name, 'Unnamed creature');
+    langLines.push(`entity.${identifier}.name=${mobLabel}`);
+    langLines.push(`item.spawn_egg.entity.${identifier}.name=Spawn ${mobLabel}`);
   }
 
   // --- Rules (Milestone 7) -------------------------------------------------
@@ -282,8 +281,10 @@ export function buildAddon(project: ModProject, options: BuildOptions = {}): Bui
   }
 
   // --- Language file -------------------------------------------------------
-  langLines.push(`pack.name=${sanitizeLangValue(project.name)}`);
-  langLines.push(`pack.description=${sanitizeLangValue(project.description)}`);
+  langLines.push(`pack.name=${sanitizeLangValue(project.name, 'My Mod')}`);
+  langLines.push(
+    `pack.description=${sanitizeLangValue(packDescription(project), 'A mod made with Bedrock Mod Maker')}`,
+  );
   text(`${rp}/texts/en_US.lang`, `${langLines.join('\n')}\n`);
   text(`${rp}/texts/languages.json`, json(['en_US']));
   text(`${bp}/texts/en_US.lang`, `${langLines.join('\n')}\n`);
@@ -301,7 +302,13 @@ export function buildAddon(project: ModProject, options: BuildOptions = {}): Bui
   return { fileName: toAddonFileName(project.name), files };
 }
 
-/** .lang is line-based `key=value`; strip anything that would break a line. */
-function sanitizeLangValue(value: string): string {
-  return value.replace(/[\r\n]+/g, ' ').replace(/=/g, '-').trim() || 'My Mod';
+/**
+ * .lang is line-based `key=value`; strip anything that would break a line.
+ *
+ * The fallback is per-caller because this text is what the player reads. One
+ * shared default meant an unnamed sword, block and creature were all called
+ * "My Mod" in-game — the mod's own name, on three unrelated things.
+ */
+function sanitizeLangValue(value: string, fallback: string): string {
+  return value.replace(/[\r\n]+/g, ' ').replace(/=/g, '-').trim() || fallback;
 }

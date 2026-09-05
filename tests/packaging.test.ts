@@ -2,7 +2,7 @@ import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
 import { buildAddon } from '../src/bedrock/pack';
 import { zipAddonBytes } from '../src/bedrock/package';
-import { createItem, createProject } from '../src/bedrock/project';
+import { createBlock, createItem, createMob, createProject } from '../src/bedrock/project';
 import { isUuid } from '../src/bedrock/ids';
 import { isPng, readPngSize } from '../src/bedrock/png';
 import type { ModProject } from '../src/bedrock/types';
@@ -131,6 +131,31 @@ describe('packaging pipeline', () => {
       // ...and the texture entry must point at a PNG that is actually present.
       expect(paths).toContain(`Atlas_Mod_RP/${atlas.texture_data[key].textures}.png`);
     }
+  });
+
+  it('gives an unnamed thing its own name, not the mod’s', async () => {
+    // Every empty display name used to fall back to one shared default, so a
+    // kid who added a sword, a block and a creature without naming them found
+    // three things called "My Mod" in their inventory.
+    const project: ModProject = {
+      ...createProject('Ruby Mod', ''),
+      items: [createItem('sword')],
+      blocks: [createBlock()],
+      mobs: [createMob()],
+    };
+    const { readText } = await unzip(project);
+    const lang = await readText('Ruby_Mod_RP/texts/en_US.lang');
+
+    expect(lang).toContain('item.ruby_mod:my_item=Unnamed item');
+    expect(lang).toContain('tile.ruby_mod:my_block.name=Unnamed block');
+    expect(lang).toContain('entity.ruby_mod:my_mob.name=Unnamed creature');
+    expect(lang).toContain('item.spawn_egg.entity.ruby_mod:my_mob.name=Spawn Unnamed creature');
+    expect(lang).not.toContain('=My Mod');
+
+    // An empty description falls back to the same words the manifest uses,
+    // rather than repeating the mod's name back at the player.
+    expect(lang).toContain('pack.name=Ruby Mod');
+    expect(lang).toContain('pack.description=A mod made with Bedrock Mod Maker');
   });
 
   it('does not add a format_version to item_texture.json', async () => {

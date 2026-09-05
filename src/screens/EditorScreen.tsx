@@ -85,6 +85,13 @@ export function EditorScreen({
     ...blocks.filter((b) => isTextureEmpty(b.texture)),
     ...mobs.filter((m) => isTextureEmpty(m.texture)),
   ];
+  // Same split as the blank-picture warning: the export is perfectly valid,
+  // it just will not say what the kid expects once they are in the game.
+  const unnamed = [
+    ...project.items.filter((i) => !i.name.trim()),
+    ...blocks.filter((b) => !b.name.trim()),
+    ...mobs.filter((m) => !m.name.trim()),
+  ];
   const thingCount = project.items.length + blocks.length + mobs.length;
 
   return (
@@ -390,6 +397,12 @@ export function EditorScreen({
             <p className="warn tiny">
               <Icon name="warning" size={15} className="icon--inline" /> {emptyTextures.length === 1 ? 'One thing has' : `${emptyTextures.length} things have`} a blank
               picture. They’ll be invisible in the game!
+            </p>
+          )}
+          {unnamed.length > 0 && (
+            <p className="warn tiny">
+              <Icon name="warning" size={15} className="icon--inline" /> {unnamed.length === 1 ? 'One thing still needs' : `${unnamed.length} things still need`} a
+              name. The game will just call {unnamed.length === 1 ? 'it “Unnamed”' : 'them “Unnamed”'}.
             </p>
           )}
           {ruleProblems.size > 0 && (

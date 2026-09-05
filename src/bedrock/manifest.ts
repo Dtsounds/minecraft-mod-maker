@@ -54,7 +54,7 @@ export interface Manifest {
 }
 
 /** Description shown under the pack name in-game. Never allowed to be empty. */
-function packDescription(project: ModProject): string {
+export function packDescription(project: ModProject): string {
   const trimmed = project.description.trim();
   return trimmed.length > 0 ? trimmed.slice(0, 200) : `A mod made with Bedrock Mod Maker`;
 }

@@ -63,6 +63,12 @@ These differ in ways that fail **silently**:
 
 Spawn eggs get their own key: `item.spawn_egg.entity.<ns>:<id>.name=…`
 
+✅ **One identifier may be reused across registries.** An item and a block both
+called "Ruby" ship as `ns:ruby` twice, and BDS loads the pack with **no content-log
+complaint at all** — checked on a live server, not inferred. So the generator
+de-duplicates names *within* each registry and not across them. Display names are
+independent too: the three lang key shapes above never collide.
+
 ## Items
 
 ⚠️ **`minecraft:icon` must use the `textures` map.** The flat `texture` field is

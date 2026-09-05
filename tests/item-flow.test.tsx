@@ -257,4 +257,21 @@ describe('item creator, driven through the UI', () => {
 
     await settleAutosave();
   }, 40000);
+
+  it('warns when a thing has no name, and stops once it has one', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await newMod(user, 'Nameless Mod');
+
+    await user.click(screen.getByRole('button', { name: /add an item/i }));
+    await user.click(screen.getByRole('button', { name: /back to my mod/i }));
+    expect(screen.getByText(/still needs a name/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /edit this item/i }));
+    await user.type(screen.getByLabelText(/name it/i), 'Ruby');
+    await user.click(screen.getByRole('button', { name: /back to my mod/i }));
+    await waitFor(() => expect(screen.queryByText(/still needs a name/i)).not.toBeInTheDocument());
+
+    await settleAutosave();
+  }, 40000);
 });
